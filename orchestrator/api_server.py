@@ -180,35 +180,101 @@ def decode_session_token(token: str) -> Optional[dict]:
 
 
 async def validate_membership(user_id: str, property_id: str) -> Optional[dict]:
-    """Validate user belongs to property via FMS Supabase property_memberships."""
+    """
+    Validate user belongs to property. Checks in order:
+    1. Master Admin (is_master_admin = true) → Access to ALL properties
+    2. Org Super Admin (org_super_admin role) → Access to all properties in that org
+    3. Property Member (property_memberships) → Access to specific property only
+    """
     if not FMS_SUPABASE_URL or not FMS_SUPABASE_SERVICE_ROLE_KEY:
         logger.error("[AUTH] FMS Supabase not configured")
         return None
 
-    url = f"{FMS_SUPABASE_URL}/rest/v1/property_memberships"
     headers = {
         "apikey": FMS_SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {FMS_SUPABASE_SERVICE_ROLE_KEY}",
         "Accept": "application/json",
     }
-    params = {
-        "select": "organization_id,role",
-        "user_id": f"eq.{user_id}",
-        "property_id": f"eq.{property_id}",
-        "limit": "1",
-    }
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, headers=headers, params=params)
-        logger.info("[AUTH] Membership query status=%s user=%s property=%s", resp.status_code, user_id, property_id)
-        if resp.status_code == 200:
-            data = resp.json()
-            logger.info("[AUTH] Membership query returned %d rows", len(data))
-            if data and len(data) > 0:
-                return data[0]
-        else:
-            logger.warning(f"[AUTH] Supabase returned {resp.status_code}: {resp.text[:200]}")
+            # Step 1: Check if user is a master admin
+            users_url = f"{FMS_SUPABASE_URL}/rest/v1/users"
+            users_params = {
+                "select": "id,is_master_admin",
+                "id": f"eq.{user_id}",
+                "limit": "1",
+            }
+            resp = await client.get(users_url, headers=headers, params=users_params)
+            if resp.status_code == 200:
+                users_data = resp.json()
+                if users_data and users_data[0].get("is_master_admin"):
+                    logger.info("[AUTH] User is MASTER ADMIN → allow all properties. user=%s", user_id)
+                    return {
+                        "organization_id": "",  # Master admin doesn't need org constraint
+                        "property_id": property_id,
+                        "role": "master_admin",
+                        "is_active": True,
+                    }
+
+            # Step 2: Get the organization for this property, then check org super admin
+            properties_url = f"{FMS_SUPABASE_URL}/rest/v1/properties"
+            properties_params = {
+                "select": "organization_id",
+                "id": f"eq.{property_id}",
+                "limit": "1",
+            }
+            resp = await client.get(properties_url, headers=headers, params=properties_params)
+            organization_id = None
+            if resp.status_code == 200:
+                prop_data = resp.json()
+                if prop_data:
+                    organization_id = prop_data[0].get("organization_id")
+
+            if organization_id:
+                # Check if user is org super admin
+                org_members_url = f"{FMS_SUPABASE_URL}/rest/v1/organization_memberships"
+                org_params = {
+                    "select": "role",
+                    "user_id": f"eq.{user_id}",
+                    "organization_id": f"eq.{organization_id}",
+                    "limit": "1",
+                }
+                resp = await client.get(org_members_url, headers=headers, params=org_params)
+                if resp.status_code == 200:
+                    org_data = resp.json()
+                    if org_data and org_data[0].get("role") == "org_super_admin":
+                        logger.info("[AUTH] User is ORG SUPER ADMIN → allow all properties in org. user=%s org=%s", user_id, organization_id)
+                        return {
+                            "organization_id": organization_id,
+                            "property_id": property_id,
+                            "role": "org_super_admin",
+                            "is_active": True,
+                        }
+
+            # Step 3: Check property membership (regular users)
+            prop_members_url = f"{FMS_SUPABASE_URL}/rest/v1/property_memberships"
+            prop_params = {
+                "select": "organization_id,role,is_active",
+                "user_id": f"eq.{user_id}",
+                "property_id": f"eq.{property_id}",
+                "limit": "1",
+            }
+            resp = await client.get(prop_members_url, headers=headers, params=prop_params)
+            logger.info("[AUTH] Property membership query status=%s user=%s property=%s", resp.status_code, user_id, property_id)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data and len(data) > 0:
+                    membership = data[0]
+                    if membership.get("is_active", True):  # is_active=True means active
+                        logger.info("[AUTH] User found in property_memberships. role=%s", membership.get("role"))
+                        return membership
+                    else:
+                        logger.warning("[AUTH] User membership is inactive. user=%s property=%s", user_id, property_id)
+            else:
+                logger.warning(f"[AUTH] Supabase returned {resp.status_code}: {resp.text[:200]}")
+
+        logger.warning("[AUTH] No valid membership found. user=%s property=%s", user_id, property_id)
         return None
     except Exception as exc:
         logger.error(f"[AUTH] Membership validation error: {exc}")
