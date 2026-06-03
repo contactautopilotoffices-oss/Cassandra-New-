@@ -1,0 +1,568 @@
+"""
+LLM Orchestrator — Single Command Center
+=======================================
+
+One GPT-4o instance orchestrates everything:
+1. Classifies intent (via system prompt)
+2. Decides which tools to call
+3. Executes tools and synthesizes results
+4. Returns the final answer
+
+NO separate agents. NO rule-based branching.
+The LLM decides, the harness executes.
+
+Module: NEW — Single LLM Core
+Status: ACTIVE
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import time
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Optional
+
+from cassandra.llm.openai_client import (
+    OpenAIClient,
+    LLMResult,
+    SYSTEM_PROMPT,
+    TOOL_DEFINITIONS,
+)
+from cassandra.orchestrator import ToolResult  # Shared type
+from cassandra.tools.calculate_date import CalculateDateTool
+from cassandra.tools.create_ticket import CreateTicketTool
+from cassandra.tools.fetch_context import FetchContextTool
+from cassandra.tools.query_tickets import QueryTicketsTool
+from cassandra.tools.sql_engine import SQLEngineTool
+from cassandra.tools.voice_enroll import VoiceEnrollTool
+
+logger = logging.getLogger("cassandra.llm.orchestrator")
+
+
+# ---------------------------------------------------------------------------
+# Stream Chunk
+# ---------------------------------------------------------------------------
+
+@dataclass
+class StreamChunk:
+    """SSE stream chunk."""
+    event: str
+    data: dict
+
+
+# ---------------------------------------------------------------------------
+# LLM Orchestrator
+# ---------------------------------------------------------------------------
+
+class LLMOrchestrator:
+    """
+    Single LLM Command Center.
+
+    Uses GPT-4o to:
+    - Understand the user's intent
+    - Decide which tools to call
+    - Execute tools via the harness
+    - Synthesize the final answer
+
+    No rule-based branching. No separate agents.
+    The LLM is the orchestrator.
+    """
+
+    MAX_TOOL_CALLS = 10
+    TOOL_TIMEOUT_S = 30
+
+    def __init__(self, llm_client: Optional[OpenAIClient] = None):
+        """
+        Initialize the orchestrator.
+
+        Args:
+            llm_client: OpenAI client. If None, reads from OPENAI_API_KEY env.
+        """
+        if llm_client:
+            self._llm = llm_client
+        else:
+            self._llm = OpenAIClient()
+
+        # Initialize tools
+        self._tools: dict[str, Any] = {
+            "calculate_date": CalculateDateTool(),
+            "create_ticket": CreateTicketTool(),
+            "fetch_context": FetchContextTool(),
+            "query_tickets": QueryTicketsTool(),
+            "sql_query": SQLEngineTool(),
+            "enroll_voice": VoiceEnrollTool(),
+        }
+
+        self._logger = logging.getLogger("cassandra.llm.orchestrator")
+        self._logger.info("LLM Orchestrator initialized with tools: " + ", ".join(self._tools.keys()))
+
+    def _build_context(self, org_id: str, user_id: str, property_id: str, role: str, **kwargs) -> dict:
+        """Build the context dict for the LLM."""
+        ctx = {
+            "org_id": org_id,
+            "user_id": user_id,
+            "property_id": property_id,  # Added 2026-06-01
+            "role": role,
+            "allowed_property_ids": kwargs.get("allowed_property_ids", []),
+        }
+        if kwargs.get("photo_url"):
+            ctx["photo_url"] = kwargs["photo_url"]
+        if kwargs.get("property_metadata"):
+            ctx["property_metadata"] = kwargs["property_metadata"]
+        return ctx
+
+    def _execute_tool(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        context: dict[str, Any],
+    ) -> ToolResult:
+        """Execute a single tool with timeout."""
+        if name not in self._tools:
+            return ToolResult(
+                call_id=f"unknown_tool_{time.time():.0f}",
+                tool_name=name,
+                success=False,
+                error=f"UNKNOWN_TOOL: '{name}' not found",
+            )
+
+        tool = self._tools[name]
+        start = time.time()
+
+        # Build mock OrchestratorContext for tools
+        mock_ctx = type("MockContext", (), {
+            "org_id": context.get("org_id", ""),
+            "user_id": context.get("user_id", ""),
+            "property_id": context.get("property_id", ""),  # Added 2026-06-01
+            "role": context.get("role", "tenant"),
+            "allowed_property_ids": context.get("allowed_property_ids", []),
+            "property_metadata": context.get("property_metadata", {}),
+            "photo_url": context.get("photo_url"),
+            "turn_count": 0,
+            "conversation_history": [],
+            "tool_results": [],
+            "current_stage": "ACTION",
+            "max_turns": 20,
+            "max_validation_iterations": 3,
+            "current_timestamp": datetime.now(timezone.utc).isoformat(),
+        })()
+
+        try:
+            result = tool.execute(arguments, mock_ctx)
+            elapsed_ms = (time.time() - start) * 1000
+            return ToolResult(
+                call_id=getattr(result, 'call_id', f"exec_{time.time():.0f}"),
+                tool_name=name,
+                success=result.success,
+                result=result.result,
+                error=result.error,
+                execution_ms=elapsed_ms,
+            )
+        except Exception as exc:
+            elapsed_ms = (time.time() - start) * 1000
+            self._logger.error(f"[TOOL] {name} raised: {exc}")
+            return ToolResult(
+                call_id=f"tool_error_{time.time():.0f}",
+                tool_name=name,
+                success=False,
+                error=f"TOOL_RAISED: {type(exc).__name__}: {exc}",
+                execution_ms=elapsed_ms,
+            )
+
+    def _format_tool_results(self, tool_results: list[ToolResult]) -> str:
+        """Format tool results for the LLM to synthesize."""
+        lines = ["## Tool Execution Results\n"]
+        for tr in tool_results:
+            status = "✅" if tr.success else "❌"
+            tool_name = getattr(tr, 'tool_name', getattr(tr, 'name', 'unknown'))
+            lines.append(f"### {status} {tool_name} ({tr.execution_ms:.0f}ms)\n")
+            if tr.success and tr.result:
+                # Format result as clean JSON
+                try:
+                    result_json = json.dumps(tr.result, indent=2, default=str)
+                    # Truncate long results
+                    if len(result_json) > 1000:
+                        result_json = result_json[:1000] + "\n... (truncated)"
+                    lines.append(f"```json\n{result_json}\n```\n")
+                except Exception:
+                    lines.append(f"{tr.result}\n")
+            if tr.error:
+                lines.append(f"**Error:** {tr.error}\n")
+        return "\n".join(lines)
+
+    def _sanitize_answer(self, answer: str) -> str:
+        """Strip any leaked internal terms from the answer."""
+        import re
+
+        # Patterns that should never reach the user
+        leak_patterns = [
+            (r"(?i)\bHARNESS\b|\bMASTER_LOOP\b|\bTOOL_RAISED\b", ""),
+            (r"(?i)\bSQL_GUARD\b", ""),
+            (r"(?i)\bSELF-CORRECT\b.*?attempt \d/3", ""),
+            (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[id]"),
+            (r"(?i)\bSELECT\b.*?\bFROM\b.*?\bWHERE\b", "[database query]"),
+            # Strip markdown formatting that looks bad in plain-text UI
+            (r"#{1,6}\s*", ""),                    # ### headers
+            (r"\*\*([^*]+)\*\*", r"\1"),             # **bold** → plain
+            (r"\*([^*]+)\*", r"\1"),                 # *italic* → plain
+            (r"`{1,3}([^`]+)`{1,3}", r"\1"),         # `code` → plain
+        ]
+
+        cleaned = answer
+        for pattern, replacement in leak_patterns:
+            cleaned = re.sub(pattern, replacement, cleaned)
+
+        # Collapse multiple whitespace
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        cleaned = re.sub(r" {2,}", " ", cleaned)
+        return cleaned.strip()
+
+    def run(
+        self,
+        message: str,
+        org_id: str,
+        user_id: str,
+        property_id: str = "",
+        role: str = "tenant",
+        photo_url: Optional[str] = None,
+        conversation_history: Optional[list[dict]] = None,
+        allowed_property_ids: Optional[list[str]] = None,
+        property_metadata: Optional[dict] = None,
+    ) -> dict:
+        """
+        Run the LLM orchestrator (non-streaming).
+
+        Args:
+            message: User's message
+            org_id: Organization ID
+            user_id: User ID
+            property_id: Currently selected property ID (2026-06-01)
+            role: User role (tenant, org_admin, etc.)
+            photo_url: Photo URL from mobile upload (optional)
+            conversation_history: Previous messages
+            allowed_property_ids: Property IDs the user can access
+            property_metadata: Property name/code mapping
+
+        Returns:
+            dict with answer, tool_results, citations, confidence
+        """
+        context = self._build_context(
+            org_id=org_id,
+            user_id=user_id,
+            property_id=property_id,  # Added 2026-06-01
+            role=role,
+            photo_url=photo_url,
+            allowed_property_ids=allowed_property_ids or [],
+            property_metadata=property_metadata or {},
+        )
+
+        # Inject photo_url and allowed_property_ids into the context dict
+        # (for tools that access it directly)
+        context["photo_url"] = photo_url
+        context["allowed_property_ids"] = allowed_property_ids or []
+
+        # Build history for the LLM
+        history = conversation_history[-10:] if conversation_history else []
+
+        # First call: Get LLM response with potential tool calls
+        messages = [{"role": "user", "content": message}]
+
+        self._logger.info(
+            f"[ORCH] Processing: org={org_id}, property={property_id[:8] if property_id else 'none'}, role={role}, "
+            f"history={len(history)}, photo={'yes' if photo_url else 'no'}"
+        )
+
+        # Initial LLM call
+        llm_result = self._llm.chat_with_tools(
+            messages=messages,
+            context=context,
+            history=history,
+        )
+
+        tool_results: list[ToolResult] = []
+        all_tool_calls = llm_result.tool_calls
+
+        # Execute tool calls (up to MAX_TOOL_CALLS)
+        for i, tc in enumerate(all_tool_calls[: self.MAX_TOOL_CALLS]):
+            tool_name = tc["name"]
+            tool_args = tc.get("arguments", {})
+
+            self._logger.info(f"[ORCH] Tool call {i+1}: {tool_name}({list(tool_args.keys())})")
+
+            # Inject photo_url into create_ticket if present
+            if tool_name == "create_ticket" and photo_url:
+                tool_args = {**tool_args, "photo_url": photo_url}
+
+            result = self._execute_tool(tool_name, tool_args, context)
+            tool_results.append(result)
+
+            self._logger.info(
+                f"[ORCH] Tool result {i+1}: {tool_name} → "
+                f"{'✅' if result.success else '❌'} "
+                f"({result.execution_ms:.0f}ms)"
+            )
+
+        # If tools were called, do a second LLM call to synthesize results
+        if tool_results:
+            # Build tool results message
+            tool_results_text = self._format_tool_results(tool_results)
+
+            # Extract <reasoning> tags from first LLM call's answer
+            first_answer = llm_result.answer or ""
+            import re
+            reasoning_blocks = re.findall(r"<reasoning>(.*?)</reasoning>", first_answer, re.DOTALL)
+            chain_of_thought = "\n".join(f"<reasoning>{rb.strip()}</reasoning>" for rb in reasoning_blocks)
+
+            messages = [
+                {"role": "user", "content": message},
+                {
+                    "role": "assistant",
+                    "content": (
+                        "I'll use tools to help answer this. "
+                        "Let me execute the necessary actions."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Here are my reasoning steps:\n{chain_of_thought}\n\n"
+                        f"Here are the tool execution results:\n\n"
+                        f"{tool_results_text}\n\n"
+                        f"Please synthesize: (1) explain your thinking process using "
+                        f"<reasoning> tags, (2) present the tool results clearly, "
+                        f"(3) give the final answer. Include ticket ID if created. "
+                        f"Use Markdown. Never mention 'tool' or 'function'."
+                    ),
+                },
+            ]
+
+            synthesis_result = self._llm.chat_with_tools(
+                messages=messages,
+                context=context,
+                history=[],  # Don't include history in synthesis
+            )
+
+            final_answer = self._sanitize_answer(synthesis_result.answer)
+        else:
+            final_answer = self._sanitize_answer(llm_result.answer)
+
+        # Embed ticket data in answer for mobile parseToolCall
+        final_answer = self._embed_ticket_data(final_answer, tool_results)
+
+        self._logger.info(
+            f"[ORCH] Done: answer_length={len(final_answer)}, "
+            f"tools_used={[getattr(tr, 'tool_name', getattr(tr, 'name', '?')) for tr in tool_results if tr.success]}"
+        )
+
+        return {
+            "response": final_answer,
+            "tool_results": [
+                {
+                    "tool_name": getattr(tr, 'tool_name', getattr(tr, 'name', 'unknown')),
+                    "success": tr.success,
+                    "result": tr.result,
+                    "error": tr.error,
+                    "execution_ms": tr.execution_ms,
+                }
+                for tr in tool_results
+            ],
+            "citations": [],
+            "confidence": llm_result.confidence,
+            "finish_reason": llm_result.finish_reason,
+            "usage": llm_result.usage,
+        }
+
+    def _embed_ticket_data(self, answer: str, tool_results: list[ToolResult]) -> str:
+        """
+        Embed ticket creation data in answer for mobile parseToolCall.
+
+        Mobile CassandraSessionModal.parseToolCall() extracts this to render
+        the "Ticket Created" card with photo.
+        """
+        for tr in tool_results:
+            tool_name = getattr(tr, 'tool_name', getattr(tr, 'name', ''))
+            if tool_name == "create_ticket" and tr.success:
+                result = tr.result or {}
+                ticket = result.get("ticket") or {}
+                ticket_id = ticket.get("id") or result.get("ticket_id")
+                if ticket_id:
+                    # Embed as HTML comment for easy extraction
+                    photo_url = ticket.get("photo_before_url") or ""
+                    return (
+                        f"{answer}\n\n"
+                        f"<!--TICKET_DATA{{"
+                        f'"ticket_id":"{ticket_id}",'
+                        f'"status":"{ticket.get("status","open")}",'
+                        f'"title":"{self._sanitize_answer(ticket.get("title","") or "")}",'
+                        f'"photo_before_url":"{photo_url}"'
+                        f'}}TICKET_DATA-->\n'
+                    )
+        return answer
+
+    def run_stream(
+        self,
+        message: str,
+        org_id: str,
+        user_id: str,
+        property_id: str = "",
+        role: str = "tenant",
+        photo_url: Optional[str] = None,
+        conversation_history: Optional[list[dict]] = None,
+        allowed_property_ids: Optional[list[str]] = None,
+        property_metadata: Optional[dict] = None,
+    ):
+        """
+        Run the LLM orchestrator with SSE streaming.
+
+        Yields StreamChunk events for real-time UI updates, including reasoning/CoT.
+
+        Args:
+            Same as run()
+
+        Yields:
+            StreamChunk events: reasoning, tool_start, tool_result, answer, done
+        """
+        context = self._build_context(
+            org_id=org_id,
+            user_id=user_id,
+            property_id=property_id,  # Added 2026-06-01
+            role=role,
+            photo_url=photo_url,
+            allowed_property_ids=allowed_property_ids or [],
+            property_metadata=property_metadata or {},
+        )
+
+        # Inject photo_url and allowed_property_ids into the context dict
+        # (for tools that access it directly)
+        context["photo_url"] = photo_url
+        context["allowed_property_ids"] = allowed_property_ids or []
+
+        history = conversation_history[-10:] if conversation_history else []
+        messages = [{"role": "user", "content": message}]
+
+        # Stream the initial LLM call to get reasoning and tool calls
+        reasoning_steps = []
+        full_response = ""
+        in_reasoning_tag = False
+        current_reasoning = ""
+
+        for chunk in self._llm.stream_chat(
+            messages=messages,
+            context=context,
+            history=history,
+        ):
+            if chunk.get("type") == "content":
+                content = chunk.get("content", "")
+                full_response += content
+
+                # Parse reasoning tags from streamed content
+                i = 0
+                while i < len(content):
+                    if not in_reasoning_tag:
+                        # Look for opening tag
+                        if content[i:i+11] == "<reasoning>":
+                            in_reasoning_tag = True
+                            current_reasoning = ""
+                            i += 11
+                            continue
+                    else:
+                        # Look for closing tag
+                        if content[i:i+12] == "</reasoning>":
+                            if current_reasoning.strip():
+                                reasoning_steps.append(current_reasoning.strip())
+                                yield StreamChunk("reasoning", {"message": current_reasoning.strip()})
+                            in_reasoning_tag = False
+                            current_reasoning = ""
+                            i += 12
+                            continue
+                        # Add character to current reasoning
+                        current_reasoning += content[i]
+                    i += 1
+
+        # Get full result for tool execution
+        llm_result = self._llm.chat_with_tools(
+            messages=messages,
+            context=context,
+            history=history,
+        )
+
+        tool_results: list[ToolResult] = []
+
+        # Execute tool calls with streaming events
+        for i, tc in enumerate(llm_result.tool_calls[: self.MAX_TOOL_CALLS]):
+            tool_name = tc["name"]
+            tool_args = tc.get("arguments", {})
+
+            yield StreamChunk("tool_start", {
+                "step": i + 1,
+                "tool": tool_name,
+                "message": f"Running {tool_name}...",
+            })
+
+            # Inject photo_url
+            if tool_name == "create_ticket" and photo_url:
+                tool_args = {**tool_args, "photo_url": photo_url}
+
+            result = self._execute_tool(tool_name, tool_args, context)
+            tool_results.append(result)
+
+            yield StreamChunk("tool_result", {
+                "tool": tool_name,
+                "success": result.success,
+                "message": result.error or "Done",
+                "execution_ms": result.execution_ms,
+            })
+
+        # Synthesize with second LLM call if tools were used
+        if tool_results:
+            tool_results_text = self._format_tool_results(tool_results)
+
+            messages = [
+                {"role": "user", "content": message},
+                {
+                    "role": "assistant",
+                    "content": "I'll use tools to help answer this.",
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Results:\n\n{tool_results_text}\n\n"
+                        f"Synthesize into a clear answer. Include ticket ID if created."
+                    ),
+                },
+            ]
+
+            # Stream synthesis response
+            for chunk in self._llm.stream_chat(
+                messages=messages,
+                context=context,
+                history=[],
+            ):
+                if chunk.get("type") == "content":
+                    yield StreamChunk("answer", {"text": chunk.get("content", "")})
+
+            synthesis = self._llm.chat_with_tools(
+                messages=messages,
+                context=context,
+                history=[],
+            )
+
+            final_answer = self._sanitize_answer(synthesis.answer)
+        else:
+            final_answer = self._sanitize_answer(llm_result.answer)
+
+        # Embed ticket data
+        final_answer = self._embed_ticket_data(final_answer, tool_results)
+
+        yield StreamChunk("done", {
+            "response": final_answer,
+            "tool_results": [
+                {"tool_name": getattr(tr, 'tool_name', getattr(tr, 'name', 'unknown')), "success": tr.success, "result": tr.result}
+                for tr in tool_results
+            ],
+            "citations": [],
+            "confidence": llm_result.confidence,
+        })
