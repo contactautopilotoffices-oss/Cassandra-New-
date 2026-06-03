@@ -1,5 +1,9 @@
+
+> autopilot-mobile@1.0.0 start
+> expo start
+
 env: load .env
-env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_CASSANDRA_API_URL EXPO_PUBLIC_CASSANDRA_WS_URL EXPO_PUBLIC_VOICE_API_URL EXPO_PUBLIC_MOBILE_SERVER_URL CASSANDRA_SUPABASE_URL CASSANDRA_SUPABASE_ANON_KEY SUPABASE_JWT_SECRET AUTH_SUPABASE_SERVICE_ROLE_KEY AUTH_SUPABASE_URL OPENAI_API_KEY OPENAI_MODEL OPENAI_EMBEDDING_MODEL OPENAI_MAX_TOKENS OPENAI_TEMPERATURE ASSEMBLYAI_API_KEY ANTIGRAVITY_MOBILE_TOKEN ELEVENLABS_API_KEY ELEVENLABS_DEFAULT_VOICE ELEVENLABS_MODEL SUPERMEMORY_API_URL SUPERMEMORY_API_KEY SUPERMEMORY_ORG_ID_HEADER SUPERMEMORY_SEARCH_ENDPOINT SUPERMEMORY_TIMEOUT_SECONDS KIMI_API_KEY KIMI_BASE_URL KIMI_MODEL APP_NAME APP_VERSION DEBUG ENVIRONMENT HOST PORT WORKERS RELOAD DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD DB_SSL_MODE DB_POOL_SIZE DB_MAX_OVERFLOW VAD_PROVIDER STT_PROVIDER TTS_PROVIDER AUDIO_SAMPLE_RATE AUDIO_CHUNK_DURATION_MS VAD_PROBABILITY_THRESHOLD VAD_SILENCE_THRESHOLD_MS VAD_PREFIX_PADDING_MS SESSION_IDLE_TIMEOUT_SECONDS MAX_CONCURRENT_SESSIONS VECTOR_PROVIDER VECTOR_ENVIRONMENT VECTOR_INDEX_NAME VECTOR_DIMENSION VECTOR_METRIC REDIS_HOST REDIS_PORT REDIS_DB REDIS_SSL SECURITY_JWT_ALGORITHM SECURITY_JWT_EXPIRATION_HOURS SECURITY_JWT_REFRESH_EXPIRATION_DAYS SECURITY_PASSWORD_MIN_LENGTH SECURITY_ENABLE_CORS SECURITY_ALLOWED_ORIGINS SECURITY_ENCRYPTION_ENABLED LOG_LEVEL LOG_FORMAT LOG_JSON_FORMAT AWS_REGION AWS_KMS_KEY_ALIAS_PREFIX AWS_S3_BUCKET CIRCUIT_BREAKER_FAILURE_THRESHOLD CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS LIMIT_TENANT LIMIT_SUPER_TENANT LIMIT_ADMIN LIMIT_ORG_SUPER_ADMIN LIMIT_OWNER LIMIT_MASTER_ADMIN CASSANDRA_HOST CASSANDRA_PORT CASSANDRA_TOKEN_SECRET CASSANDRA_TOKEN_EXPIRE_SECONDS FMS_API_URL FMS_SUPABASE_URL FMS_SUPABASE_ANON_KEY RCT_METRO_PORT CASSANDRA_SUPABASE_SERVICE_ROLE_KEY
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_CASSANDRA_API_URL EXPO_PUBLIC_CASSANDRA_WS_URL EXPO_PUBLIC_VOICE_API_URL EXPO_PUBLIC_MOBILE_SERVER_URL CASSANDRA_SUPABASE_URL CASSANDRA_SUPABASE_ANON_KEY SUPABASE_JWT_SECRET AUTH_SUPABASE_SERVICE_ROLE_KEY AUTH_SUPABASE_URL OPENAI_API_KEY OPENAI_MODEL OPENAI_EMBEDDING_MODEL OPENAI_MAX_TOKENS OPENAI_TEMPERATURE ASSEMBLYAI_API_KEY ANTIGRAVITY_MOBILE_TOKEN ELEVENLABS_API_KEY ELEVENLABS_DEFAULT_VOICE ELEVENLABS_MODEL SUPERMEMORY_API_URL SUPERMEMORY_API_KEY SUPERMEMORY_ORG_ID_HEADER SUPERMEMORY_SEARCH_ENDPOINT SUPERMEMORY_TIMEOUT_SECONDS KIMI_API_KEY KIMI_BASE_URL KIMI_MODEL APP_NAME APP_VERSION DEBUG ENVIRONMENT HOST PORT WORKERS RELOAD DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD DB_SSL_MODE DB_POOL_SIZE DB_MAX_OVERFLOW VAD_PROVIDER STT_PROVIDER TTS_PROVIDER AUDIO_SAMPLE_RATE AUDIO_CHUNK_DURATION_MS VAD_PROBABILITY_THRESHOLD VAD_SILENCE_THRESHOLD_MS VAD_PREFIX_PADDING_MS SESSION_IDLE_TIMEOUT_SECONDS MAX_CONCURRENT_SESSIONS VECTOR_PROVIDER VECTOR_ENVIRONMENT VECTOR_INDEX_NAME VECTOR_DIMENSION VECTOR_METRIC REDIS_HOST REDIS_PORT REDIS_DB REDIS_SSL SECURITY_JWT_ALGORITHM SECURITY_JWT_EXPIRATION_HOURS SECURITY_JWT_REFRESH_EXPIRATION_DAYS SECURITY_PASSWORD_MIN_LENGTH SECURITY_ENABLE_CORS SECURITY_ALLOWED_ORIGINS SECURITY_ENCRYPTION_ENABLED LOG_LEVEL LOG_FORMAT LOG_JSON_FORMAT AWS_REGION AWS_KMS_KEY_ALIAS_PREFIX AWS_S3_BUCKET CIRCUIT_BREAKER_FAILURE_THRESHOLD CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS LIMIT_TENANT LIMIT_SUPER_TENANT LIMIT_ADMIN LIMIT_ORG_SUPER_ADMIN LIMIT_OWNER LIMIT_MASTER_ADMIN CASSANDRA_HOST CASSANDRA_PORT CASSANDRA_TOKEN_SECRET CASSANDRA_TOKEN_EXPIRE_SECONDS FMS_API_URL FMS_SUPABASE_URL FMS_SUPABASE_ANON_KEY RCT_METRO_PORT CASSANDRA_SUPABASE_SERVICE_ROLE_KEY EXPO_PUBLIC_GROQ_API_KEY EXPO_PUBLIC_APP_NAME EXPO_PUBLIC_APP_VERSION EXPO_PUBLIC_AUTOPILOT_ORG_ID EXPO_PUBLIC_ENABLE_ANALYTICS EXPO_PUBLIC_ENABLE_CRASHLYTICS EXPO_PUBLIC_WEB_API_URL
 Starting project at /Users/lohitaksha/Lohit Mobile App/saas_mobile_app
 Starting Metro Bundler
 The following packages should be updated for best compatibility with the installed expo version:
@@ -15,24 +19,38 @@ Your project may not work correctly until you install the expected versions of t
 Waiting on http://localhost:8081
 Logs for your project will appear below.
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 31.2% ( 532/1192)
-λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 52.3% ( 851/1506)
-Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.5% (3845/4158)
-λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 65.3% (2844/4123)
-λ Bundled 8448ms node_modules/expo-router/node/render.js (4666 modules)
+λ node_modules/expo-router/node/render.js ▓▓░░░░░░░░░░░░░░ 13.6% ( 89/241)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 26.5% (102/323)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.1% (560/852)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 26.5% (224/507)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.1% ( 638/2945)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 29.7% (331/607)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.1% (1657/3211)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 32.4% (436/822)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.4% (2940/3344)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 32.4% ( 752/3138)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.2% (3309/3888)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 68.8% (2732/3294)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.2% (3309/3888)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.0% (3018/3424)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 86.2% (3896/4200)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.0% (3532/4031)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 90.5% (4162/4374)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 91.2% (4272/4473)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 95.8% (4474/4571)
+λ Bundled 34685ms node_modules/expo-router/node/render.js (4666 modules)
+"shadow*" style props are deprecated. Use "boxShadow".
+[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
+  initSentry (lib/sentry.ts:9:15)
+  factory (app/_layout.tsx:19:11)
+"textShadow*" style props are deprecated. Use "textShadow".
+λ  LOG  [RootLayout] Rendering...
 Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (4791/4791)
-Web Bundled 10757ms node_modules/expo-router/entry.js (4791 modules)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-λ Bundled 187ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 1930ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 38651ms node_modules/expo-router/entry.js (4791 modules)
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 132ms node_modules/expo-router/node/render.js (1 module)
 "shadow*" style props are deprecated. Use "boxShadow".
 [expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
 [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
@@ -42,77 +60,17 @@ Web Bundled 1930ms node_modules/expo-router/entry.js (1 module)
 "textShadow*" style props are deprecated. Use "textShadow".
 λ  LOG  [RootLayout] Rendering...
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 344ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2828ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 361ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2190ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 469ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2288ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 218ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 1983ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 245ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2079ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 167ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2056ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.1% (1898/4021)
-Web Bundled 4767ms node_modules/expo-router/entry.js (4793 modules)
+Web Bundled 2419ms node_modules/expo-router/entry.js (1 module)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 30.3% (296/538)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 36.7% ( 678/3085)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 52.7% (2363/3254)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.6% (3331/3866)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 83.8% (3876/4235)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 97.9% (4708/4759)
+Web Bundled 21780ms node_modules/expo-router/entry.js (4793 modules)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 474ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2305ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 186ms node_modules/expo-router/node/render.js (1 module)
 "shadow*" style props are deprecated. Use "boxShadow".
 [expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
 [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
@@ -122,335 +80,29 @@ Web Bundled 2305ms node_modules/expo-router/entry.js (1 module)
 "textShadow*" style props are deprecated. Use "textShadow".
 λ  LOG  [RootLayout] Rendering...
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 395ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2216ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 427ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2303ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 418ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2347ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 737ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2658ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 419ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2264ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 498ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 3526ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 483ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2319ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 728ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2536ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 455ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2260ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 3174ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 5285ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-λ Bundled 434ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 2298ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 285ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2211ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-λ Bundled 2699ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 12104ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Error: Cannot pipe to a closed or destroyed stream
-    at pipelineImpl (node:internal/streams/pipeline:264:15)
-    at node:stream/promises:31:5
-    at new Promise (<anonymous>)
-    at pipeline (node:stream/promises:20:10)
-    at respond (/Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:138:19)
-    at /Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:68:13
-λ Bundled 334ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2165ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-λ Bundled 813ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 2739ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 383ms node_modules/expo-router/node/render.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Error: Cannot pipe to a closed or destroyed stream
-    at pipelineImpl (node:internal/streams/pipeline:264:15)
-    at node:stream/promises:31:5
-    at new Promise (<anonymous>)
-    at pipeline (node:stream/promises:20:10)
-    at respond (/Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:138:19)
-    at /Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:68:13
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at processImmediate (node:internal/timers:472:9)
-Web Bundled 12013ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Error: Cannot pipe to a closed or destroyed stream
-    at pipelineImpl (node:internal/streams/pipeline:264:15)
-    at node:stream/promises:31:5
-    at new Promise (<anonymous>)
-    at pipeline (node:stream/promises:20:10)
-    at respond (/Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:138:19)
-    at /Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:68:13
-λ Bundled 945ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2948ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Error: Cannot pipe to a closed or destroyed stream
-    at pipelineImpl (node:internal/streams/pipeline:264:15)
-    at node:stream/promises:31:5
-    at new Promise (<anonymous>)
-    at pipeline (node:stream/promises:20:10)
-    at respond (/Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:138:19)
-    at /Users/lohitaksha/Lohit Mobile App/saas_mobile_app/node_modules/expo-server/src/vendor/http.ts:68:13
-λ Bundled 1176ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 3670ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 3895ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 5736ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 431ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2288ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 419ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2308ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 263ms node_modules/expo-router/node/render.js (1 module)
-Web Bundled 2213ms node_modules/expo-router/entry.js (1 module)
-"shadow*" style props are deprecated. Use "boxShadow".
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
-λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
-  initSentry (lib/sentry.ts:9:15)
-  factory (app/_layout.tsx:19:11)
-"textShadow*" style props are deprecated. Use "textShadow".
-λ  LOG  [RootLayout] Rendering...
-λ Bundled 2358ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 5145ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 412ms node_modules/expo-router/node/render.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 4484ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 2176ms node_modules/expo-router/entry.js (1 module)
+Unable to resolve "expo-local-authentication" from "lib/biometric.ts"
+[0m [90m 10 |[39m [90m */[39m
+ [90m 11 |[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mLocalAuthentication[39m [36mfrom[39m [32m'expo-local-authentication'[39m[33m;[39m
+ [90m    |[39m                                       [31m[1m^[22m[39m
+ [90m 13 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mSecureStore[39m [36mfrom[39m [32m'expo-secure-store'[39m[33m;[39m
+ [90m 14 |[39m [36mimport[39m { [33mPlatform[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+ [90m 15 |[39m[0m
 
-<--- Last few GCs --->
+Import stack:
 
-[79641:0x120008000]  1093384 ms: Mark-Compact (reduce) 2050.2 (2063.5) -> 2046.5 (2060.3) MB, pooled: 0 MB, 16143.08 / 0.83 ms  (+ 108.5 ms in 18 steps since start of marking, biggest step 25.1 ms, walltime since start of marking 17055 ms) (average mu = 0
-FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
------ Native stack trace -----
+ lib/biometric.ts
+ | import "expo-local-authentication"
 
- 1: 0x100a182e4 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 2: 0x100c18868 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 3: 0x100e78498 v8::internal::Heap::stack() [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 4: 0x100e76380 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 5: 0x100e6aea8 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 6: 0x100e3a0e4 v8::internal::FactoryBase<v8::internal::Factory>::NewRawOneByteString(int, v8::internal::AllocationType) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 7: 0x100e39f20 v8::internal::FactoryBase<v8::internal::Factory>::NewStringFromOneByte(v8::base::Vector<unsigned char const>, v8::internal::AllocationType) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 8: 0x100fa0264 v8::internal::JsonStringifier::Stringify(v8::internal::Handle<v8::internal::Union<v8::internal::Smi, v8::internal::HeapNumber, v8::internal::BigInt, v8::internal::String, v8::internal::Symbol, v8::internal::Boolean, v8::internal::Null, v8::internal::Undefined, v8::internal::JSReceiver>>, v8::internal::Handle<v8::internal::Union<v8::internal::Smi, v8::internal::HeapNumber, v8::internal::BigInt, v8::internal::String, v8::internal::Symbol, v8::internal::Boolean, v8::internal::Null, v8::internal::Undefined, v8::internal::JSReceiver>>, v8::internal::Handle<v8::internal::Object>) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
- 9: 0x100fa6234 v8::internal::JsonStringify(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Union<v8::internal::Smi, v8::internal::HeapNumber, v8::internal::BigInt, v8::internal::String, v8::internal::Symbol, v8::internal::Boolean, v8::internal::Null, v8::internal::Undefined, v8::internal::JSReceiver>>, v8::internal::Handle<v8::internal::Union<v8::internal::Smi, v8::internal::HeapNumber, v8::internal::BigInt, v8::internal::String, v8::internal::Symbol, v8::internal::Boolean, v8::internal::Null, v8::internal::Undefined, v8::internal::JSReceiver>>, v8::internal::Handle<v8::internal::Object>) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-10: 0x100c9567c v8::internal::Builtin_JsonStringify(int, unsigned long*, v8::internal::Isolate*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-11: 0x101931e94 Builtins_CEntry_Return1_ArgvOnStack_BuiltinExit [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-12: 0x1489e4fc8 
-13: 0x1489e5854 
-14: 0x1018d3648 Builtins_AsyncFunctionAwaitResolveClosure [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-15: 0x1019a85f8 Builtins_PromiseFulfillReactionJob [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-16: 0x1018c2a50 Builtins_RunMicrotasks [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-17: 0x1018927b0 Builtins_JSRunMicrotasksEntry [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-18: 0x100dbc69c v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-19: 0x100dbcf10 v8::internal::(anonymous namespace)::InvokeWithTryCatch(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-20: 0x100dbd04c v8::internal::Execution::TryRunMicrotasks(v8::internal::Isolate*, v8::internal::MicrotaskQueue*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-21: 0x100debef8 v8::internal::MicrotaskQueue::RunMicrotasks(v8::internal::Isolate*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-22: 0x100dec858 v8::internal::MicrotaskQueue::PerformCheckpoint(v8::Isolate*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-23: 0x10189694c Builtins_CallApiCallbackOptimizedNoProfiling [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-24: 0x14887fcb0 
-25: 0x148326420 
-26: 0x1018928cc Builtins_JSEntryTrampoline [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-27: 0x101892570 Builtins_JSEntry [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-28: 0x100dbc6e4 v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-29: 0x100dbc048 v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::DirectHandle<v8::internal::Object>, v8::internal::DirectHandle<v8::internal::Object>, v8::base::Vector<v8::internal::DirectHandle<v8::internal::Object> const>) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-30: 0x100c307e0 v8::Function::Call(v8::Isolate*, v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-31: 0x10091936c node::InternalMakeCallback(node::Environment*, v8::Local<v8::Object>, v8::Local<v8::Object>, v8::Local<v8::Function>, int, v8::Local<v8::Value>*, node::async_context, v8::Local<v8::Value>) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-32: 0x100919654 node::InternalMakeCallback(v8::Isolate*, v8::Local<v8::Object>, v8::Local<v8::Function>, int, v8::Local<v8::Value>*, node::async_context, v8::Local<v8::Value>) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-33: 0x1009a3c38 node::Environment::CheckImmediate(uv_check_s*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-34: 0x101878af4 uv__run_check [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-35: 0x101871b14 uv_run [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-36: 0x100919b7c node::SpinEventLoopInternal(node::Environment*) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-37: 0x100a6c0c0 node::NodeMainInstance::Run() [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-38: 0x1009d2344 node::Start(int, char**) [/Users/lohitaksha/.nvm/versions/node/v24.12.0/bin/node]
-39: 0x181c37f28 start [/usr/lib/dyld]
+ hooks/useBiometricLock.ts
+ | import "../lib/biometric"
+
+ components/security/BiometricGate.tsx
+ | import "../../hooks/useBiometricLock"
+
+ app/_layout.tsx
+ | import "../components/security/BiometricGate"
+
+ app (require.context)
+

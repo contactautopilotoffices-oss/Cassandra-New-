@@ -458,6 +458,63 @@ async def create_session_token(req: SimpleSessionRequest):
     )
 
 
+# ─── Property Metadata Loader ────────────────────────────────────────────────
+
+# Simple in-process cache: org_id → {property_id: {name, code}}  (TTL: 5 min)
+_property_cache: dict[str, tuple[float, dict]] = {}
+_PROPERTY_CACHE_TTL = 300  # seconds
+
+
+async def fetch_org_properties(org_id: str) -> dict:
+    """
+    Return {property_id: {name, code}} for every property in the org.
+    Cached for 5 minutes so we don't hit Supabase on every chat turn.
+    """
+    now = time.time()
+    if org_id in _property_cache:
+        cached_at, data = _property_cache[org_id]
+        if now - cached_at < _PROPERTY_CACHE_TTL:
+            return data
+
+    if not FMS_SUPABASE_URL or not FMS_SUPABASE_SERVICE_ROLE_KEY:
+        return {}
+
+    headers = {
+        "apikey": FMS_SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {FMS_SUPABASE_SERVICE_ROLE_KEY}",
+        "Accept": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                f"{FMS_SUPABASE_URL}/rest/v1/properties",
+                headers=headers,
+                params={
+                    "select": "id,name,code,city",
+                    "organization_id": f"eq.{org_id}",
+                    "is_active": "eq.true",
+                    "limit": "200",
+                },
+            )
+            if resp.status_code == 200:
+                props = resp.json()
+                metadata = {
+                    p["id"]: {
+                        "name": p.get("name", ""),
+                        "code": p.get("code", ""),
+                        "city": p.get("city", ""),
+                    }
+                    for p in props
+                    if p.get("id")
+                }
+                _property_cache[org_id] = (now, metadata)
+                logger.info(f"[PROPS] Loaded {len(metadata)} properties for org={org_id[:8]}")
+                return metadata
+    except Exception as exc:
+        logger.warning(f"[PROPS] Failed to fetch org properties: {exc}")
+    return {}
+
+
 # ─── Chat: Streaming (Main Endpoint) ──────────────────────────────────────────
 
 @app.post("/chat/stream")
@@ -491,6 +548,10 @@ async def chat_stream(request: Request):
 
     logger.info(f"[CHAT] stream: '{message[:60]}' user={user_id[:8]}... org={org_id[:8]}...")
 
+    # Fetch org property list server-side so the LLM can resolve names like
+    # "ETPL" or "SS Plaza" to UUIDs without a second round-trip.
+    org_properties = await fetch_org_properties(org_id) if org_id else {}
+
     # Enqueue
     try:
         job_id = query_queue.enqueue(
@@ -502,8 +563,8 @@ async def chat_stream(request: Request):
                 "property_id": property_id,
                 "photo_url": photo_url,
                 "conversation_history": conversation_history,
-                "allowed_property_ids": context_from_body.get("allowed_property_ids", [property_id] if property_id else []),
-                "property_metadata": context_from_body.get("property_metadata", {}),
+                "allowed_property_ids": list(org_properties.keys()) if org_properties else ([property_id] if property_id else []),
+                "property_metadata": org_properties,  # {id: {name, code, city}} — always populated server-side
             },
         )
     except Exception as exc:

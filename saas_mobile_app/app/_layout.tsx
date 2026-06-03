@@ -12,6 +12,7 @@ import { useColorScheme, View, Text, StyleSheet, Platform } from 'react-native';
 import AutopilotSplash from '@/components/splash/AutopilotSplash';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import NotificationBanner from '@/components/notifications/NotificationBanner';
+import BiometricGate from '@/components/security/BiometricGate';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, mmkvPersister } from '@/utils/queryClient';
 
@@ -166,10 +167,10 @@ function AppContent({ colorScheme }: { colorScheme: any }) {
   usePushNotifications();
 
   return (
-    <>
+    <BiometricGate>
       <NotificationBanner />
       <Stack screenOptions={{ headerShown: false }} />
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-    </>
+    </BiometricGate>
   );
 }

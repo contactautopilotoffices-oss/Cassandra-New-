@@ -29,6 +29,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from cassandra.tools.fk_graph import FKGraph, get_fk_graph
 from cassandra.tools.fms_schema import TABLES
 
 # ---------------------------------------------------------------------------
@@ -169,7 +170,14 @@ class SQLGuard:
                 blocked_columns=blocked_cols,
             )
 
-        # Step 6: All checks passed
+        # Step 6: FK JOIN validation (for multi-table queries)
+        fk_graph = get_fk_graph()
+        if fk_graph.needs_join(sql):
+            is_valid, error = self._check_fk_joins(sql)
+            if not is_valid:
+                return GuardResult(allowed=False, reason=error)
+
+        # Step 7: All checks passed
         self.logger.info(
             f"[SQL_GUARD] ALLOWED: {query.operation} on {query.table} "
             f"(org={self.org_id})"
@@ -289,6 +297,44 @@ class SQLGuard:
             if re.search(rf"\b{col}\b", sql_lower, re.IGNORECASE):
                 found.append(col)
         return found
+
+    def _check_fk_joins(self, sql: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate JOINs against FK graph.
+
+        Returns (is_valid, error_message).
+        """
+        fk_graph = get_fk_graph()
+        is_valid, error = fk_graph.validate_sql_joins(sql)
+
+        if not is_valid:
+            return False, f"FK_VALIDATION_FAILED: {error}"
+
+        return True, None
+
+    def validate_with_fk(self, sql: str) -> GuardResult:
+        """
+        Full validation including FK graph check for multi-table queries.
+
+        Use this for SQL Engine v2 queries that may include JOINs.
+        """
+        # First run standard validation
+        result = self.validate(sql)
+
+        if not result.allowed:
+            return result
+
+        # Check for JOINs and validate them
+        fk_graph = get_fk_graph()
+        if fk_graph.needs_join(sql):
+            is_valid, error = self._check_fk_joins(sql)
+            if not is_valid:
+                return GuardResult(
+                    allowed=False,
+                    reason=error,
+                )
+
+        return result
 
 
 @dataclass

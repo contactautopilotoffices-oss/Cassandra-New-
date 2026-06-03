@@ -596,7 +596,9 @@ export const CassandraSessionModal: React.FC<CassandraSessionModalProps> = ({
     const chatOptions: StreamChatOptions = {
       photoUrl: photoUrl ?? undefined,
       propertyId: selectedPropertyId ?? '',
-      conversationHistory: messageHistory.map(m => ({
+      // Memory window: last 16 pairs = 32 messages (matches server MAX_HISTORY_MESSAGES).
+      // Keeps the wire payload bounded on long sessions.
+      conversationHistory: messageHistory.slice(-32).map(m => ({
         role: m.role === 'user' ? 'user' : 'cassandra',
         content: m.text,
       })),

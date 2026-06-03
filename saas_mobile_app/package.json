@@ -10,7 +10,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
+    "web": "NODE_OPTIONS='--max-old-space-size=4096' expo start --web",
+    "web:build": "NODE_OPTIONS='--max-old-space-size=4096' npx expo export --platform web",
     "tunnel": "expo start --tunnel",
     "test": "jest",
     "lint": "eslint ."

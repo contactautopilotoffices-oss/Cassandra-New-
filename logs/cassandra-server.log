@@ -25,3 +25,4 @@ INFO:     192.168.0.201:52625 - "POST /chat/sessions HTTP/1.1" 200 OK
 2026-06-01 19:07:49,221 | INFO     | cassandra.api | [AUTH] Session created: user=5973fcab... org=211e1330... property=79ba1aa5...
 INFO:     192.168.0.201:52626 - "POST /cassandra/session HTTP/1.1" 200 OK
 INFO:     192.168.0.201:52629 - "PUT /chat/sessions/8a2686e1-a243-4217-81f6-b18f94090c56/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51337 - "GET /health HTTP/1.1" 200 OK

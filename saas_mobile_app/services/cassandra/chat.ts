@@ -149,6 +149,7 @@ export function streamChat(
                 query_tickets: 'Searching tickets…',
                 fetch_context: 'Loading context…',
                 calculate_date: 'Calculating date…',
+                health_score: 'Scoring health…',
                 enroll_voice: 'Enrolling voice…',
               };
               if (tool) onReasoning?.(toolLabels[tool] ?? `Running ${tool}…`);
@@ -163,6 +164,7 @@ export function streamChat(
                 query_tickets: 'Tickets loaded',
                 fetch_context: 'Context loaded',
                 calculate_date: 'Date calculated',
+                health_score: 'Health scored',
               };
               if (onReasoning) {
                 onReasoning(success ? (doneLabels[tool] ?? 'Done') : 'Retrying…');
