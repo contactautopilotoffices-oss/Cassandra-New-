@@ -1,0 +1,27 @@
+# Python bytecode — never commit compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Runtime databases (SQLite session store)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

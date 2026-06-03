@@ -1,0 +1,92 @@
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Image } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
+
+const LOGO_IMAGE = require('../../assets/images/logo.png');
+
+interface AutopilotSplashProps {
+  onComplete: () => void;
+}
+
+export default function AutopilotSplash({ onComplete }: AutopilotSplashProps) {
+  const logoScale = useSharedValue(1);
+  const logoOpacity = useSharedValue(1);
+  const containerOpacity = useSharedValue(1);
+
+  const logoStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: logoScale.value }],
+    opacity: logoOpacity.value,
+  }));
+
+  const containerStyle = useAnimatedStyle(() => ({
+    opacity: containerOpacity.value,
+  }));
+
+  useEffect(() => {
+    // Wait for 2 seconds (2000ms), then start the zoom-in animation
+    const delay = 2000;
+    const zoomDuration = 600;
+    
+    logoScale.value = withDelay(
+      delay,
+      withTiming(40, { duration: zoomDuration, easing: Easing.in(Easing.ease) })
+    );
+
+    logoOpacity.value = withDelay(
+      delay + 100, // fade out slightly after starting to zoom
+      withTiming(0, { duration: zoomDuration - 100 })
+    );
+
+    containerOpacity.value = withDelay(
+      delay + zoomDuration - 200,
+      withTiming(0, { duration: 300, easing: Easing.in(Easing.ease) }, (finished) => {
+        'worklet';
+        if (finished) {
+          runOnJS(onComplete)();
+        }
+      })
+    );
+
+    // Fallback to ensure app loads even if animation callback drops
+    const fallbackTimer = setTimeout(() => {
+      onComplete();
+    }, delay + zoomDuration + 500);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [onComplete]);
+
+  return (
+    <Animated.View style={[styles.root, containerStyle]}>
+      <Animated.Image
+        source={LOGO_IMAGE}
+        style={[styles.logo, logoStyle, { tintColor: '#FFFFFF' }]}
+        resizeMode="contain"
+        accessibilityLabel="Autopilot"
+      />
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 320,
+    height: 90,
+  },
+});

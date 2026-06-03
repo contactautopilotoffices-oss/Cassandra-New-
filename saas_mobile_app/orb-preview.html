@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Orb</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000; /* remove for true transparency */
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      /* For embedding with transparency, set background: transparent on parent */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="orb"></canvas>
+  <script>
+    const canvas = document.getElementById('orb');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ─── Value Noise (3D, no external deps) ───────────────────────────────────
+    function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function hash(x, y, z) {
+      let h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+      return h - Math.floor(h);
+    }
+
+    function noise3(x, y, z) {
+      const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+      const fx = x - ix, fy = y - iy, fz = z - iz;
+      const ux = fade(fx), uy = fade(fy), uz = fade(fz);
+
+      const v000 = hash(ix,   iy,   iz);
+      const v100 = hash(ix+1, iy,   iz);
+      const v010 = hash(ix,   iy+1, iz);
+      const v110 = hash(ix+1, iy+1, iz);
+      const v001 = hash(ix,   iy,   iz+1);
+      const v101 = hash(ix+1, iy,   iz+1);
+      const v011 = hash(ix,   iy+1, iz+1);
+      const v111 = hash(ix+1, iy+1, iz+1);
+
+      return lerp(
+        lerp(lerp(v000, v100, ux), lerp(v010, v110, ux), uy),
+        lerp(lerp(v001, v101, ux), lerp(v011, v111, ux), uy),
+        uz
+      );
+    }
+
+    // Fractional Brownian Motion — layered noise for organic feel
+    function fbm(x, y, z, octaves = 4) {
+      let value = 0, amplitude = 0.5, frequency = 1, max = 0;
+      for (let i = 0; i < octaves; i++) {
+        value += noise3(x * frequency, y * frequency, z * frequency) * amplitude;
+        max += amplitude;
+        amplitude *= 0.5;
+        frequency *= 2.1;
+      }
+      return value / max;
+    }
+
+    // ─── Particles ────────────────────────────────────────────────────────────
+    const COUNT = 4200;
+    const particles = [];
+
+    for (let i = 0; i < COUNT; i++) {
+      // Uniform sphere surface distribution
+      const u = Math.random();
+      const v = Math.random();
+      const theta = 2 * Math.PI * u;
+      const phi = Math.acos(2 * v - 1);
+
+      // Radial distribution: bias toward surface, some interior scatter
+      // Use cube-root to spread volume evenly, then bias toward edge
+      const radialRaw = Math.pow(Math.random(), 0.35); // 0=center, 1=surface
+      const isCore = Math.random() < 0.05; // 5% very bright core particles
+
+      const sinPhi = Math.sin(phi);
+      particles.push({
+        // Base unit-sphere position
+        bx: sinPhi * Math.cos(theta),
+        by: sinPhi * Math.sin(theta),
+        bz: Math.cos(phi),
+        // Radial depth
+        r: isCore ? Math.random() * 0.3 : radialRaw,
+        // Per-particle animation offsets
+        phase: Math.random() * Math.PI * 2,
+        breathSpeed: 0.4 + Math.random() * 0.6,
+        noiseOx: Math.random() * 37.3,
+        noiseOy: Math.random() * 53.1,
+        noiseOz: Math.random() * 71.9,
+        noiseSpeed: 0.08 + Math.random() * 0.14,
+        isCore,
+        size: isCore ? 2.5 + Math.random() * 1.5 : 0.5 + Math.random() * 1.8,
+      });
+    }
+
+    // ─── 3D Rotation helpers ──────────────────────────────────────────────────
+    function rotY(x, y, z, a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [x * c + z * s, y, -x * s + z * c];
+    }
+    function rotX(x, y, z, a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [x, y * c - z * s, y * s + z * c];
+    }
+
+    // ─── Color helpers ────────────────────────────────────────────────────────
+    // Map depth 0→1 to green-white orb color
+    // 0 = center: white/pale lime | 1 = edge: vivid green / dim green
+    function orbColor(depth, frontness, alpha) {
+      // Core: near white. Edge: vivid green fading out.
+      const coreMix = Math.pow(Math.max(0, 1 - depth * 1.4), 1.5);
+
+      const r = Math.round(lerp(20,  255, coreMix));
+      const g = Math.round(lerp(200, 255, coreMix * 0.4 + 0.6));
+      const b = Math.round(lerp(30,  220, coreMix));
+
+      // Slight tint variation — some particles more yellow-green, some teal
+      const tint = 0; // could vary per-particle
+
+      // Depth fade: particles on back hemisphere are dimmer
+      const depthFade = 0.25 + 0.75 * frontness;
+
+      // Edge scatter particles should be very faint
+      const edgeFade = depth > 0.85 ? Math.pow(1 - (depth - 0.85) / 0.15, 1.5) : 1;
+
+      return `rgba(${r},${g},${b},${(alpha * depthFade * edgeFade).toFixed(3)})`;
+    }
+
+    // ─── Animation loop ────────────────────────────────────────────────────────
+    let time = 0;
+    let angleY = 0;
+    let angleX = 0;
+
+    // For mouse interaction — subtle tilt
+    let mouseX = 0, mouseY = 0;
+    window.addEventListener('mousemove', e => {
+      mouseX = (e.clientX / window.innerWidth  - 0.5) * 2;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      time += 0.012;
+      angleY += 0.0035;
+      angleX = Math.sin(time * 0.25) * 0.18 + mouseY * 0.15;
+      const tiltY = angleY + mouseX * 0.2;
+
+      const cx = canvas.width  / 2;
+      const cy = canvas.height / 2;
+      // Orb radius — responsive
+      const R = Math.min(canvas.width, canvas.height) * 0.28;
+
+      // Global breathing
+      const breathScale = 1 + Math.sin(time * 0.7) * 0.04 + Math.sin(time * 1.1) * 0.02;
+
+      // Collect all projected particles
+      const batch = [];
+
+      for (const p of particles) {
+        // ── Noise displacement (makes it organic/alive) ─────────────────────
+        const ns = 1.8; // noise sample scale
+        const nt = time * p.noiseSpeed;
+
+        const nx = fbm(p.bx * ns + p.noiseOx + nt, p.by * ns, p.bz * ns, 3);
+        const ny = fbm(p.bx * ns, p.by * ns + p.noiseOy + nt, p.bz * ns, 3);
+        const nz = fbm(p.bx * ns, p.by * ns, p.bz * ns + p.noiseOz + nt, 3);
+
+        const disp = 0.25; // displacement strength
+        const dx = (nx - 0.5) * disp;
+        const dy = (ny - 0.5) * disp;
+        const dz = (nz - 0.5) * disp;
+
+        // ── Per-particle breathing ───────────────────────────────────────────
+        const pBreath = 1 + Math.sin(time * p.breathSpeed + p.phase) * 0.06;
+        const effectiveR = p.r * breathScale * pBreath;
+
+        let px = (p.bx + dx) * effectiveR * R;
+        let py = (p.by + dy) * effectiveR * R;
+        let pz = (p.bz + dz) * effectiveR * R;
+
+        // ── 3D Rotation ─────────────────────────────────────────────────────
+        [px, py, pz] = rotY(px, py, pz, tiltY);
+        [px, py, pz] = rotX(px, py, pz, angleX);
+
+        // ── Perspective projection ───────────────────────────────────────────
+        const perspective = 900;
+        const scale = perspective / (perspective + pz + R * 0.3);
+        const sx = cx + px * scale;
+        const sy = cy + py * scale;
+
+        // ── Color & opacity ──────────────────────────────────────────────────
+        const depth = p.r; // 0=core, 1=edge
+        const frontness = (pz + R) / (2 * R + 1); // 0=back, 1=front
+
+        // Base opacity: core particles more opaque
+        let alpha = p.isCore
+          ? 0.8 + Math.random() * 0.2
+          : lerp(0.85, 0.45, depth) * (0.7 + Math.sin(time * p.breathSpeed + p.phase) * 0.3);
+
+        // Particle display size — depth + perspective scale
+        const particleSize = p.size * scale * lerp(1.2, 0.6, depth);
+
+        batch.push({ sx, sy, pz, particleSize, depth, frontness, alpha });
+      }
+
+      // ── Sort back→front for painter's algorithm ──────────────────────────
+      batch.sort((a, b) => a.pz - b.pz);
+
+      // ── Draw glow pass (soft, large, transparent — creates halo) ─────────
+      for (const d of batch) {
+        if (d.depth > 0.6) continue; // only inner particles get glow
+        ctx.beginPath();
+        ctx.arc(d.sx, d.sy, d.particleSize * 5, 0, Math.PI * 2);
+        ctx.fillStyle = orbColor(d.depth, d.frontness, 0.018);
+        ctx.fill();
+      }
+
+      // ── Draw main particles ───────────────────────────────────────────────
+      for (const d of batch) {
+        ctx.beginPath();
+        ctx.arc(d.sx, d.sy, d.particleSize, 0, Math.PI * 2);
+        ctx.fillStyle = orbColor(d.depth, d.frontness, d.alpha);
+        ctx.fill();
+      }
+
+      // ── Central glow bloom ────────────────────────────────────────────────
+      const bloomRadius = R * 0.35 * breathScale;
+      const bloomGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, bloomRadius);
+      bloomGrad.addColorStop(0,    'rgba(220, 255, 220, 0.22)');
+      bloomGrad.addColorStop(0.3,  'rgba(160, 255, 160, 0.10)');
+      bloomGrad.addColorStop(0.7,  'rgba(80,  200, 80,  0.04)');
+      bloomGrad.addColorStop(1,    'rgba(0,   120, 0,   0)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, bloomRadius, 0, Math.PI * 2);
+      ctx.fillStyle = bloomGrad;
+      ctx.fill();
+    }
+
+    animate();
+  </script>
+</body>
+</html>

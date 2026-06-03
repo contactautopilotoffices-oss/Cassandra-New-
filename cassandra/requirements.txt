@@ -1,0 +1,16 @@
+# Cassandra Orchestrator — Python Dependencies
+# Architecture: Single LLM Core (GPT-4o), session tokens (no JWT)
+
+# Core
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.7.0
+
+# HTTP client for FMS API calls
+httpx>=0.27.0
+
+# SQLite ORM (chat session persistence)
+sqlalchemy>=2.0.0
+
+# LLM
+openai>=1.0.0

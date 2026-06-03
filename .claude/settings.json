@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__notebooklm__notebook_list",
+      "Skill(gsd-ultraplan-phase)",
+      "Skill(gsd-ultraplan-phase:*)"
+    ]
+  }
+}

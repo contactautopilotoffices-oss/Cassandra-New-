@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "start:mobile-shared": "bash ./scripts/start-mobile-shared.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.15"
+  }
+}

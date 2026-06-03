@@ -1,0 +1,77 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser, getPropertyAccess } from "@/lib/auth";
+import { getCache, setCache, CACHE_TTL } from "@/lib/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await getAuthenticatedUser(request);
+    if (auth.response || !auth.user) {
+      return auth.response ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const propertyId = searchParams.get("propertyId");
+    
+    if (!propertyId || propertyId === 'undefined' || propertyId === 'null') {
+      return NextResponse.json({ error: 'propertyId is required' }, { status: 400 });
+    }
+
+    const userId = auth.user.id;
+    
+    const access = await getPropertyAccess(userId, propertyId);
+    if (!access.authorized) {
+      return NextResponse.json({ error: "Access Denied to this Property" }, { status: 403 });
+    }
+
+    const cacheKey = `dashboard:mst:${propertyId}:${userId}`;
+
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return NextResponse.json({ success: true, data: cachedData, source: "cache" });
+    }
+
+    const admin = createAdminClient();
+
+    const [
+      { data: propData },
+      { data: ticketData },
+      { data: shiftData },
+      { data: ppmData }
+    ] = await Promise.all([
+      admin.from('properties').select('name').eq('id', propertyId).maybeSingle(),
+      admin.from('tickets').select(`
+          *,
+          assignee:users!assigned_to(id, full_name, email, user_photo_url),
+          creator:users!raised_by(id, full_name)
+        `)
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false }),
+      admin.from('resolver_stats').select('is_checked_in')
+        .eq('property_id', propertyId)
+        .eq('user_id', userId)
+        .maybeSingle(),
+      (async () => { try { return await admin.rpc("get_ppm_stats", { prop_id: propertyId }); } catch { return { data: null }; } })()
+    ]);
+
+    const dashboardData = {
+      property: propData ?? null,
+      tickets: ticketData ?? [],
+      isCheckedIn: !!shiftData?.is_checked_in,
+      ppmStats: ppmData ?? {
+        total: 0,
+        done: 0,
+        pending: 0,
+        overdue: 0,
+        postponed: 0
+      },
+    };
+
+    await setCache(cacheKey, dashboardData, CACHE_TTL.HOT);
+
+    return NextResponse.json({ success: true, data: dashboardData, source: "db" });
+  } catch (error) {
+    console.error("[saas-mobile-server] mst dashboard error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

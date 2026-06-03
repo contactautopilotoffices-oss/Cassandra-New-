@@ -1,5 +1,6 @@
 # Cassandra Orchestrator — Python Dependencies
-# Architecture: Single LLM Core (GPT-4o), session tokens (no JWT)
+# Auto-synced from cassandra/requirements.txt
+# Render uses this root file for dependency resolution
 
 # Core
 fastapi>=0.110.0

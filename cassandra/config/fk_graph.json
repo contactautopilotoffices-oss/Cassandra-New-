@@ -1,0 +1,327 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "generated": "2026-06-04",
+    "source": "FMS DB (xvucakstcmtfoanmgcql)",
+    "description": "Foreign Key relationships for SQL Engine v2. All JOINs must use these verified relationships."
+  },
+  "relationships": [
+    {
+      "id": "tickets_properties",
+      "from": "tickets",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Each ticket belongs to one property",
+      "direction": "tickets -> properties",
+      "verified": true
+    },
+    {
+      "id": "tickets_organizations",
+      "from": "tickets",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Each ticket belongs to one organization",
+      "direction": "tickets -> organizations",
+      "verified": true
+    },
+    {
+      "id": "tickets_raised_by",
+      "from": "tickets",
+      "from_col": "raised_by",
+      "to": "users",
+      "to_col": "id",
+      "description": "Ticket creator",
+      "direction": "tickets -> users",
+      "verified": true,
+      "note": "Use raised_by NOT created_by"
+    },
+    {
+      "id": "tickets_assigned_to",
+      "from": "tickets",
+      "from_col": "assigned_to",
+      "to": "users",
+      "to_col": "id",
+      "description": "Assigned staff member",
+      "direction": "tickets -> users",
+      "verified": true
+    },
+    {
+      "id": "tickets_category",
+      "from": "tickets",
+      "from_col": "category_id",
+      "to": "issue_categories",
+      "to_col": "id",
+      "description": "Ticket issue category",
+      "direction": "tickets -> issue_categories",
+      "verified": true
+    },
+    {
+      "id": "properties_organizations",
+      "from": "properties",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Property belongs to organization",
+      "direction": "properties -> organizations",
+      "verified": true
+    },
+    {
+      "id": "electricity_readings_properties",
+      "from": "electricity_readings",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Energy readings for a property",
+      "direction": "electricity_readings -> properties",
+      "verified": true
+    },
+    {
+      "id": "electricity_readings_meters",
+      "from": "electricity_readings",
+      "from_col": "meter_id",
+      "to": "electricity_meters",
+      "to_col": "id",
+      "description": "Energy reading from a specific meter",
+      "direction": "electricity_readings -> electricity_meters",
+      "verified": true
+    },
+    {
+      "id": "mst_workload_users",
+      "from": "mst_workload",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "MST workload for a user",
+      "direction": "mst_workload -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_workload_properties",
+      "from": "mst_workload",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "MST workload at a property",
+      "direction": "mst_workload -> properties",
+      "verified": true
+    },
+    {
+      "id": "resolver_stats_users",
+      "from": "resolver_stats",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Resolver stats for a user",
+      "direction": "resolver_stats -> users",
+      "verified": true
+    },
+    {
+      "id": "resolver_stats_properties",
+      "from": "resolver_stats",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Resolver stats at a property",
+      "direction": "resolver_stats -> properties",
+      "verified": true
+    },
+    {
+      "id": "ticket_comments_tickets",
+      "from": "ticket_comments",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Comment belongs to a ticket",
+      "direction": "ticket_comments -> tickets",
+      "verified": true
+    },
+    {
+      "id": "ticket_comments_users",
+      "from": "ticket_comments",
+      "from_col": "created_by",
+      "to": "users",
+      "to_col": "id",
+      "description": "Comment author",
+      "direction": "ticket_comments -> users",
+      "verified": true
+    },
+    {
+      "id": "shift_logs_users",
+      "from": "shift_logs",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Shift log for a user",
+      "direction": "shift_logs -> users",
+      "verified": true
+    },
+    {
+      "id": "shift_logs_properties",
+      "from": "shift_logs",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Shift log at a property",
+      "direction": "shift_logs -> properties",
+      "verified": true
+    },
+    {
+      "id": "mst_daily_scores_users",
+      "from": "mst_daily_scores",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Daily MST score for a user",
+      "direction": "mst_daily_scores -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_daily_scores_properties",
+      "from": "mst_daily_scores",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Daily MST score at a property",
+      "direction": "mst_daily_scores -> properties",
+      "verified": true
+    },
+    {
+      "id": "stock_items_properties",
+      "from": "stock_items",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Inventory at a property",
+      "direction": "stock_items -> properties",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_rooms",
+      "from": "meeting_room_bookings",
+      "from_col": "room_id",
+      "to": "meeting_rooms",
+      "to_col": "id",
+      "description": "Booking for a meeting room",
+      "direction": "meeting_room_bookings -> meeting_rooms",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_users",
+      "from": "meeting_room_bookings",
+      "from_col": "booked_by",
+      "to": "users",
+      "to_col": "id",
+      "description": "User who booked the room",
+      "direction": "meeting_room_bookings -> users",
+      "verified": true
+    },
+    {
+      "id": "procurement_orders_properties",
+      "from": "procurement_orders",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Purchase order for a property",
+      "direction": "procurement_orders -> properties",
+      "verified": true
+    },
+    {
+      "id": "vendor_payments_vendors",
+      "from": "vendor_payments",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "Payment to a vendor",
+      "direction": "vendor_payments -> vendors",
+      "verified": true
+    },
+    {
+      "id": "notifications_users",
+      "from": "notifications",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Notification for a user",
+      "direction": "notifications -> users",
+      "verified": true
+    }
+  ],
+  "table_aliases": {
+    "tickets": ["issues", "complaints", "requests", "maintenance", "problems"],
+    "users": ["staff", "engineers", "technicians", "mst", "assignee", "resolver"],
+    "properties": ["buildings", "sites", "locations", "facilities", "property"],
+    "organizations": ["org", "company", "tenant"],
+    "electricity_readings": ["energy", "electricity", "power", "kwh", "units", "consumption"],
+    "mst_workload": ["workload", "tasks", "assignments"],
+    "resolver_stats": ["performance", "stats", "metrics"],
+    "issue_categories": ["categories", "types", "category"],
+    "meeting_rooms": ["rooms", "meeting"],
+    "procurement_orders": ["orders", "purchases", "po"],
+    "vendors": ["suppliers", "contractors"],
+    "ticket_comments": ["comments", "replies", "notes"]
+  },
+  "text_to_uuid_columns": {
+    "property_name": {
+      "table": "properties",
+      "col": "name",
+      "filter_op": "ilike"
+    },
+    "user_email": {
+      "table": "users",
+      "col": "email",
+      "filter_op": "ilike"
+    },
+    "user_name": {
+      "table": "users",
+      "col": "full_name",
+      "filter_op": "ilike"
+    },
+    "category_name": {
+      "table": "issue_categories",
+      "col": "name",
+      "filter_op": "ilike"
+    },
+    "org_name": {
+      "table": "organizations",
+      "col": "name",
+      "filter_op": "ilike"
+    },
+    "vendor_name": {
+      "table": "vendors",
+      "col": "name",
+      "filter_op": "ilike"
+    }
+  },
+  "common_queries": {
+    "tickets_with_property": {
+      "description": "Get tickets with property names",
+      "requires_join": ["tickets", "properties"],
+      "join_fk": "tickets.property_id = properties.id"
+    },
+    "tickets_with_assignee": {
+      "description": "Get tickets with assignee names",
+      "requires_join": ["tickets", "users"],
+      "join_fk": "tickets.assigned_to = users.id"
+    },
+    "energy_by_property": {
+      "description": "Get energy readings with property names",
+      "requires_join": ["electricity_readings", "properties"],
+      "join_fk": "electricity_readings.property_id = properties.id"
+    },
+    "mst_with_users": {
+      "description": "Get MST workload with user names",
+      "requires_join": ["mst_workload", "users"],
+      "join_fk": "mst_workload.user_id = users.id"
+    }
+  },
+  "column_renames": {
+    "_comment": "Common LLM mistakes -> correct column names",
+    "tickets.created_by": "tickets.raised_by",
+    "users.avatar": "users.user_photo_url",
+    "tickets.category": "tickets.category_id",
+    "tickets.status.satisfied": "NOT VALID - use resolved or closed",
+    "tickets.status.paused": "NOT VALID - use in_progress"
+  }
+}

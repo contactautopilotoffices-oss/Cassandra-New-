@@ -1,0 +1,108 @@
+
+> autopilot-mobile@1.0.0 start
+> expo start
+
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_CASSANDRA_API_URL EXPO_PUBLIC_CASSANDRA_WS_URL EXPO_PUBLIC_VOICE_API_URL EXPO_PUBLIC_MOBILE_SERVER_URL CASSANDRA_SUPABASE_URL CASSANDRA_SUPABASE_ANON_KEY SUPABASE_JWT_SECRET AUTH_SUPABASE_SERVICE_ROLE_KEY AUTH_SUPABASE_URL OPENAI_API_KEY OPENAI_MODEL OPENAI_EMBEDDING_MODEL OPENAI_MAX_TOKENS OPENAI_TEMPERATURE ASSEMBLYAI_API_KEY ANTIGRAVITY_MOBILE_TOKEN ELEVENLABS_API_KEY ELEVENLABS_DEFAULT_VOICE ELEVENLABS_MODEL SUPERMEMORY_API_URL SUPERMEMORY_API_KEY SUPERMEMORY_ORG_ID_HEADER SUPERMEMORY_SEARCH_ENDPOINT SUPERMEMORY_TIMEOUT_SECONDS KIMI_API_KEY KIMI_BASE_URL KIMI_MODEL APP_NAME APP_VERSION DEBUG ENVIRONMENT HOST PORT WORKERS RELOAD DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD DB_SSL_MODE DB_POOL_SIZE DB_MAX_OVERFLOW VAD_PROVIDER STT_PROVIDER TTS_PROVIDER AUDIO_SAMPLE_RATE AUDIO_CHUNK_DURATION_MS VAD_PROBABILITY_THRESHOLD VAD_SILENCE_THRESHOLD_MS VAD_PREFIX_PADDING_MS SESSION_IDLE_TIMEOUT_SECONDS MAX_CONCURRENT_SESSIONS VECTOR_PROVIDER VECTOR_ENVIRONMENT VECTOR_INDEX_NAME VECTOR_DIMENSION VECTOR_METRIC REDIS_HOST REDIS_PORT REDIS_DB REDIS_SSL SECURITY_JWT_ALGORITHM SECURITY_JWT_EXPIRATION_HOURS SECURITY_JWT_REFRESH_EXPIRATION_DAYS SECURITY_PASSWORD_MIN_LENGTH SECURITY_ENABLE_CORS SECURITY_ALLOWED_ORIGINS SECURITY_ENCRYPTION_ENABLED LOG_LEVEL LOG_FORMAT LOG_JSON_FORMAT AWS_REGION AWS_KMS_KEY_ALIAS_PREFIX AWS_S3_BUCKET CIRCUIT_BREAKER_FAILURE_THRESHOLD CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS LIMIT_TENANT LIMIT_SUPER_TENANT LIMIT_ADMIN LIMIT_ORG_SUPER_ADMIN LIMIT_OWNER LIMIT_MASTER_ADMIN CASSANDRA_HOST CASSANDRA_PORT CASSANDRA_TOKEN_SECRET CASSANDRA_TOKEN_EXPIRE_SECONDS FMS_API_URL FMS_SUPABASE_URL FMS_SUPABASE_ANON_KEY RCT_METRO_PORT CASSANDRA_SUPABASE_SERVICE_ROLE_KEY EXPO_PUBLIC_GROQ_API_KEY EXPO_PUBLIC_APP_NAME EXPO_PUBLIC_APP_VERSION EXPO_PUBLIC_AUTOPILOT_ORG_ID EXPO_PUBLIC_ENABLE_ANALYTICS EXPO_PUBLIC_ENABLE_CRASHLYTICS EXPO_PUBLIC_WEB_API_URL
+Starting project at /Users/lohitaksha/Lohit Mobile App/saas_mobile_app
+Starting Metro Bundler
+The following packages should be updated for best compatibility with the installed expo version:
+  @shopify/flash-list@2.3.1 - expected version: 2.0.2
+  @shopify/react-native-skia@2.6.4 - expected version: 2.2.12
+  expo@54.0.34 - expected version: ~54.0.35
+  expo-file-system@19.0.22 - expected version: ~19.0.23
+  expo-font@14.0.11 - expected version: ~14.0.12
+  expo-router@6.0.23 - expected version: ~6.0.24
+  expo-updates@29.0.17 - expected version: ~29.0.18
+  eslint-config-expo@55.0.1 - expected version: ~10.0.0
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ node_modules/expo-router/node/render.js ▓▓░░░░░░░░░░░░░░ 13.6% ( 89/241)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 26.5% (102/323)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.1% (560/852)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 26.5% (224/507)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.1% ( 638/2945)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 29.7% (331/607)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.1% (1657/3211)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 32.4% (436/822)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.4% (2940/3344)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 32.4% ( 752/3138)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.2% (3309/3888)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 68.8% (2732/3294)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.2% (3309/3888)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.0% (3018/3424)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 86.2% (3896/4200)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.0% (3532/4031)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 90.5% (4162/4374)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 91.2% (4272/4473)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 95.8% (4474/4571)
+λ Bundled 34685ms node_modules/expo-router/node/render.js (4666 modules)
+"shadow*" style props are deprecated. Use "boxShadow".
+[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
+  initSentry (lib/sentry.ts:9:15)
+  factory (app/_layout.tsx:19:11)
+"textShadow*" style props are deprecated. Use "textShadow".
+λ  LOG  [RootLayout] Rendering...
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (4791/4791)
+Web Bundled 38651ms node_modules/expo-router/entry.js (4791 modules)
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 132ms node_modules/expo-router/node/render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
+  initSentry (lib/sentry.ts:9:15)
+  factory (app/_layout.tsx:19:11)
+"textShadow*" style props are deprecated. Use "textShadow".
+λ  LOG  [RootLayout] Rendering...
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 2419ms node_modules/expo-router/entry.js (1 module)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 30.3% (296/538)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 36.7% ( 678/3085)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 52.7% (2363/3254)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.6% (3331/3866)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 83.8% (3876/4235)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 97.9% (4708/4759)
+Web Bundled 21780ms node_modules/expo-router/entry.js (4793 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 186ms node_modules/expo-router/node/render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+λ  WARN  [Sentry] EXPO_PUBLIC_SENTRY_DSN is not set. Crash reporting is disabled. 
+  initSentry (lib/sentry.ts:9:15)
+  factory (app/_layout.tsx:19:11)
+"textShadow*" style props are deprecated. Use "textShadow".
+λ  LOG  [RootLayout] Rendering...
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 2176ms node_modules/expo-router/entry.js (1 module)
+Unable to resolve "expo-local-authentication" from "lib/biometric.ts"
+[0m [90m 10 |[39m [90m */[39m
+ [90m 11 |[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mLocalAuthentication[39m [36mfrom[39m [32m'expo-local-authentication'[39m[33m;[39m
+ [90m    |[39m                                       [31m[1m^[22m[39m
+ [90m 13 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mSecureStore[39m [36mfrom[39m [32m'expo-secure-store'[39m[33m;[39m
+ [90m 14 |[39m [36mimport[39m { [33mPlatform[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+ [90m 15 |[39m[0m
+
+Import stack:
+
+ lib/biometric.ts
+ | import "expo-local-authentication"
+
+ hooks/useBiometricLock.ts
+ | import "../lib/biometric"
+
+ components/security/BiometricGate.tsx
+ | import "../../hooks/useBiometricLock"
+
+ app/_layout.tsx
+ | import "../components/security/BiometricGate"
+
+ app (require.context)
+

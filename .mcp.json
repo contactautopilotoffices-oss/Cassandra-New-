@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "notebooklm": {
+      "command": "/Users/lohitaksha/.local/share/mcp-servers/notebooklm-env/bin/notebooklm-mcp",
+      "args": ["--transport", "stdio"]
+    }
+  }
+}

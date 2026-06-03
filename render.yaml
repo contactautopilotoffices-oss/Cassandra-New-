@@ -1,0 +1,42 @@
+# Render Infrastructure-as-Code
+# Deploy: Copy this to Render dashboard → Blueprints, or use `render deploy`
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: cassandra-api
+    runtime: python
+    plan: starter
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd cassandra && uvicorn orchestrator.api_server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Required — set values in Render dashboard
+      - key: FMS_SUPABASE_URL
+        sync: false
+      - key: FMS_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+
+      # Optional — sensible defaults applied in code
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_TEMPERATURE
+        value: "0.7"
+      - key: OPENAI_MAX_TOKENS
+        value: "2048"
+      - key: OPENAI_THINKING_BUDGET
+        value: "10000"
+      - key: OPENAI_ENABLE_THINKING
+        value: "true"
+      - key: SESSION_TTL_SECONDS
+        value: "21600"
+
+      # Render injects PORT automatically; HOST defaults to 0.0.0.0 in code
+      - key: HOST
+        value: 0.0.0.0

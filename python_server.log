@@ -1,0 +1,26 @@
+2026-06-01 12:29:52,266 | INFO     | cassandra.queue | QueryQueue initialized: max_size=1000, max_workers=1, ttl=3600s
+/Users/lohitaksha/Lohit Mobile App/cassandra/orchestrator/api_server.py:227: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+2026-06-01 12:29:52,353 | INFO     | cassandra.api | ==================================================
+2026-06-01 12:29:52,353 | INFO     | cassandra.api |   Cassandra 3.1 — Simplified
+2026-06-01 12:29:52,353 | INFO     | cassandra.api |   Listening: http://0.0.0.0:8000
+2026-06-01 12:29:52,353 | INFO     | cassandra.api |   Auth: Simple session tokens
+2026-06-01 12:29:52,353 | INFO     | cassandra.api |   LLM: GPT-4o via OpenAI
+2026-06-01 12:29:52,353 | INFO     | cassandra.api | ==================================================
+INFO:     Started server process [62210]
+INFO:     Waiting for application startup.
+2026-06-01 12:29:52,445 | INFO     | cassandra.queue | [QUEUE] Worker 0 started
+2026-06-01 12:29:52,445 | INFO     | cassandra.queue | [QUEUE] Started 1 worker(s) + cleanup thread
+2026-06-01 12:29:52,445 | INFO     | cassandra.api | [STARTUP] Queue worker started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64654 - "GET /health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62210]

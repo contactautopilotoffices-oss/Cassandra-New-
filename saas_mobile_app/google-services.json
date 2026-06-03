@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "758776193487",
+    "project_id": "web-notification-52467",
+    "storage_bucket": "web-notification-52467.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:758776193487:android:6eaedaeba6a55020a432ba",
+        "android_client_info": {
+          "package_name": "com.autopilot.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTKirfMFcorpPSegTyBTfotUrEfKc0gm8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
