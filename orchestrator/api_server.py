@@ -472,7 +472,7 @@ async def chat_stream(request: Request):
     identity = resolve_auth(request)
     org_id = identity["org_id"]
     user_id = identity["user_id"]
-    property_id = identity.get("property_id", "")
+    token_property_id = identity.get("property_id", "")
     role = identity.get("role", "tenant")
 
     # Parse body
@@ -488,6 +488,16 @@ async def chat_stream(request: Request):
     context_from_body = body.get("context", {})
     conversation_history = body.get("conversation_history", [])
     photo_url = body.get("photo_url")
+
+    # Admins can override the session property via the request body context.
+    # This enables "All Properties" mode (empty property_id = org-wide scope)
+    # and property switching without re-authentication.
+    # Non-admins are always pinned to their token property_id.
+    ADMIN_ROLES = {"org_super_admin", "org_admin", "master_admin", "property_admin", "property_manager"}
+    if role in ADMIN_ROLES and "property_id" in context_from_body:
+        property_id = context_from_body.get("property_id", "") or ""
+    else:
+        property_id = token_property_id
 
     logger.info(f"[CHAT] stream: '{message[:60]}' user={user_id[:8]}... org={org_id[:8]}...")
 
