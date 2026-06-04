@@ -142,68 +142,121 @@ class SQLEngineV2:
     ) -> ToolResult:
         """
         Execute single-table query via PostgREST.
+
+        COUNT/DISTINCT queries use PostgREST count=exact (Content-Range header) so
+        the result is the ACTUAL database count, never the fetch-limit row count.
+        All other queries fetch up to 200 rows for aggregation in Python.
         """
         if not self._http_client:
             self._http_client = httpx.AsyncClient(timeout=30.0)
 
-        # Parse the "SQL" into PostgREST parameters
         parsed = self._parse_query(query)
         table = parsed.get("table", "")
+        if not table:
+            return ToolResult(
+                call_id=f"v2_notable_{time.time():.0f}",
+                tool_name="sql_query",
+                success=False,
+                error="Could not determine table name from query",
+            )
 
-        # Build PostgREST URL
         url = f"{SUPABASE_URL}/rest/v1/{table}"
-
-        headers = {
+        base_headers = {
             "apikey": SUPABASE_SERVICE_ROLE_KEY,
             "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
             "Accept": "application/json",
         }
 
+        # ── Build filter params ───────────────────────────────────────────────
         params: dict = {}
 
-        # Always select all columns — aggregations computed Python-side
-        params["select"] = "*"
-
-        # Auto-inject organization_id scope (safety guard — never return cross-org data)
+        # Always scope to the session's organisation (never cross-org)
         org_id = context.get("org_id", "")
         if org_id:
             params["organization_id"] = f"eq.{org_id}"
 
-        # Handle WHERE clause (date filters, status, property_id, etc.)
+        # Scope to session property when the query references property context
+        # (and table has a property_id column — checked via schema)
+        property_id = context.get("property_id", "")
+        table_schema = TABLES.get(table, {})
+        table_cols = table_schema.get("columns", [])
+        if property_id and "property_id" in table_cols:
+            # Only inject if the query doesn't explicitly say "all properties" or "org-wide"
+            q_lower = query.lower()
+            if not any(kw in q_lower for kw in ("all properties", "org-wide", "orgwide",
+                                                  "across properties", "organization_id")):
+                params["property_id"] = f"eq.{property_id}"
+
+        # Parse WHERE clause (date filters, status, explicit filters)
         where = parsed.get("where", "")
         if where:
-            params.update(self._parse_where_to_params(where, context))
+            where_params = self._parse_where_to_params(where, context)
+            # Don't let WHERE parsing clobber our safety org/property scope
+            where_params.pop("organization_id", None)
+            params.update(where_params)
 
-        # Handle LIMIT — cap at 500 to avoid OOM on large tables
+        # ── COUNT / DISTINCT: use count=exact — ZERO rows fetched, real count returned ──
+        is_count = bool(re.search(r'\bCOUNT\b', query, re.IGNORECASE))
+        is_distinct = bool(re.search(r'\bDISTINCT\b', query, re.IGNORECASE))
+
+        if is_count and not re.search(r'GROUP\s+BY', query, re.IGNORECASE):
+            # Pure count — PostgREST Content-Range gives exact total
+            count_headers = {
+                **base_headers,
+                "Prefer": "count=exact",
+                "Range-Unit": "items",
+                "Range": "0-0",
+            }
+            count_params = {**params, "select": "id"}
+            try:
+                resp = await self._http_client.get(url, headers=count_headers, params=count_params)
+                if not resp.is_success and "organization_id" in count_params:
+                    del count_params["organization_id"]
+                    resp = await self._http_client.get(url, headers=count_headers, params=count_params)
+                cr = resp.headers.get("content-range", "*/0")
+                total = int(cr.split("/")[-1])
+                logger.info(f"[SQL_ENGINE_V2] count=exact: {table} → {total} (params={list(count_params.keys())})")
+                return ToolResult(
+                    call_id=f"v2_count_{time.time():.0f}",
+                    tool_name="sql_query",
+                    success=True,
+                    result=[{"total_count": total, "table": table}],
+                )
+            except Exception as e:
+                logger.error(f"[SQL_ENGINE_V2] count=exact failed: {e}")
+                return ToolResult(
+                    call_id=f"v2_count_err_{time.time():.0f}",
+                    tool_name="sql_query",
+                    success=False,
+                    error=f"COUNT query failed: {e}",
+                )
+
+        # ── Regular fetch (SELECT / SUM / DISTINCT / GROUP BY) ────────────────
+        params["select"] = "*"
         limit_match = re.search(r'LIMIT\s+(\d+)', query, re.IGNORECASE)
-        if limit_match:
-            params["limit"] = min(int(limit_match.group(1)), 500)
-        else:
-            params["limit"] = "500"
+        params["limit"] = str(min(int(limit_match.group(1)), 200)) if limit_match else "200"
 
         try:
-            resp = await self._http_client.get(url, headers=headers, params=params)
-            if not resp.is_success:
-                # Some tables don't have organization_id — retry without it
-                if resp.status_code in (400, 404) and "organization_id" in params:
-                    del params["organization_id"]
-                    resp = await self._http_client.get(url, headers=headers, params=params)
+            resp = await self._http_client.get(url, headers=base_headers, params=params)
+            if not resp.is_success and resp.status_code in (400, 404) and "organization_id" in params:
+                del params["organization_id"]
+                resp = await self._http_client.get(url, headers=base_headers, params=params)
             resp.raise_for_status()
             data = resp.json()
 
-            # Compute aggregations in Python
-            if "COUNT" in query.upper():
-                data = self._compute_count(data, query)
-            elif "SUM" in query.upper():
+            # Aggregations in Python
+            if re.search(r'\bSUM\b', query, re.IGNORECASE):
                 data = self._compute_sum(data, query)
-            elif "DISTINCT" in query.upper():
-                # Count distinct vendor_ids, user_ids, etc.
+            elif is_distinct:
                 distinct_match = re.search(r'DISTINCT\s+(\w+)', query, re.IGNORECASE)
                 if distinct_match:
                     col = distinct_match.group(1)
                     unique_vals = list({row.get(col) for row in data if row.get(col)})
                     data = [{"distinct_count": len(unique_vals), "column": col, "values": unique_vals[:50]}]
+            elif re.search(r'GROUP\s+BY', query, re.IGNORECASE):
+                data = self._compute_count(data, query)
 
+            logger.info(f"[SQL_ENGINE_V2] fetch: {table} → {len(data)} rows (params={list(params.keys())})")
             return ToolResult(
                 call_id=f"v2_single_{time.time():.0f}",
                 tool_name="sql_query",
@@ -212,7 +265,7 @@ class SQLEngineV2:
             )
         except httpx.HTTPStatusError as e:
             error_msg = f"HTTP {e.response.status_code}: {e.response.text[:200]}"
-            logger.error(f"[SQL_ENGINE_V2] Request failed: {error_msg}")
+            logger.error(f"[SQL_ENGINE_V2] fetch failed: {error_msg}")
             return ToolResult(
                 call_id=f"v2_http_err_{time.time():.0f}",
                 tool_name="sql_query",
@@ -443,6 +496,10 @@ class SQLEngineV2:
         if re.search(r"INTERVAL\s+['\"]1\s+day['\"]|yesterday", where, re.IGNORECASE):
             yesterday = (today - timedelta(days=1)).isoformat()
             params[date_col] = f"gte.{yesterday}T00:00:00"
+
+        # "today" / bare CURRENT_DATE (no subtraction offset)
+        elif re.search(r"\btoday\b|\bCURRENT_DATE\b", where, re.IGNORECASE):
+            params[date_col] = f"gte.{today.isoformat()}T00:00:00"
 
         # "last N days" / "INTERVAL 'N days'"
         elif m := re.search(r"INTERVAL\s+['\"](\d+)\s+day", where, re.IGNORECASE):

@@ -224,13 +224,13 @@ class LLMOrchestrator:
             if word in entity_keywords and entity_keywords[word] not in entities:
                 entities.append(entity_keywords[word])
 
+        # Build clarification message
+        alternatives = []
+
         # Use context for better suggestions
         current_property = context.get("property_id", "")
         if current_property:
             alternatives.insert(0, f"You're viewing property ID: {current_property[:8]}... — try selecting a different property")
-
-        # Build clarification message
-        alternatives = []
 
         # Suggest time range expansion
         alternatives.append("Try a different time range (e.g., last 30 days instead of this month)")
@@ -607,6 +607,7 @@ class LLMOrchestrator:
                 messages=messages,
                 context=context,
                 history=[],  # Don't include history in synthesis
+                synthesis_mode=True,  # Prevent blank-response bug: force text-only, no tool re-calls
             )
 
             final_answer = self._sanitize_answer(synthesis_result.answer)
@@ -881,6 +882,7 @@ class LLMOrchestrator:
                 messages=messages,
                 context=context,
                 history=[],
+                synthesis_mode=True,  # Prevent blank-response bug: force text-only, no tool re-calls
             )
 
             final_answer = self._sanitize_answer(synthesis.answer)

@@ -644,6 +644,7 @@ class OpenAIClient:
         messages: list[dict[str, str]],
         context: dict[str, Any],
         history: Optional[list[dict[str, str]]] = None,
+        synthesis_mode: bool = False,
     ) -> LLMResult:
         """
         Run a single chat turn with function calling and extended thinking.
@@ -726,23 +727,36 @@ class OpenAIClient:
         # Add current message
         full_messages.extend(messages)
 
-        # Force create_ticket tool when user explicitly asks to raise a ticket
-        user_text = " ".join(m.get("content", "") for m in messages if m.get("role") == "user").lower()
-        force_tool = None
-        if any(k in user_text for k in ("raise a ticket", "create a ticket", "report an issue", "log a problem", "file a complaint")):
-            force_tool = {"type": "function", "function": {"name": "create_ticket"}}
+        # Synthesis mode: force text-only — model must NOT call tools again.
+        # This prevents the blank-response bug where synthesis returns tool_calls
+        # instead of text, leaving synthesis.answer = "" and the user sees nothing.
+        if synthesis_mode:
+            start = time.time()
+            response = self.chat(
+                messages=full_messages,
+                tools=TOOL_DEFINITIONS,
+                stream=False,
+                enable_thinking=False,
+                tool_choice="none",  # No tools during synthesis
+            )
+            elapsed_ms = (time.time() - start) * 1000
+        else:
+            # Force create_ticket tool when user explicitly asks to raise a ticket
+            user_text = " ".join(m.get("content", "") for m in messages if m.get("role") == "user").lower()
+            force_tool = None
+            if any(k in user_text for k in ("raise a ticket", "create a ticket", "report an issue", "log a problem", "file a complaint")):
+                force_tool = {"type": "function", "function": {"name": "create_ticket"}}
 
-        # Call OpenAI (gpt-4o-mini uses system prompt for reasoning)
-        start = time.time()
-        response = self.chat(
-            messages=full_messages,
-            tools=TOOL_DEFINITIONS,
-            stream=False,
-            enable_thinking=False,
-            tool_choice=force_tool,
-        )
-        elapsed_ms = (time.time() - start) * 1000
-
+            # Call OpenAI
+            start = time.time()
+            response = self.chat(
+                messages=full_messages,
+                tools=TOOL_DEFINITIONS,
+                stream=False,
+                enable_thinking=False,
+                tool_choice=force_tool,
+            )
+            elapsed_ms = (time.time() - start) * 1000
         # Parse response
         choice = response.choices[0]
         finish_reason = choice.finish_reason or "stop"
