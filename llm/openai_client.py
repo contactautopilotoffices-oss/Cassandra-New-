@@ -410,12 +410,16 @@ DATE HANDLING RULES:
 - Use the current_datetime provided in the context below as the source of truth for "today", "tomorrow", "yesterday", etc.
 
 CONVERSATION STYLE:
-- Keep answers concise (3-5 sentences max for simple queries)
-- Use bullet points for lists
-- For ticket creation: confirm briefly and show the ticket ID. NEVER output markdown headers (###) or bold labels (**Title:**) — the mobile UI shows plain text only.
-- NEVER use markdown formatting like ###, **bold**, or bullet points with dashes in the middle of sentences. Use simple plain text only.
-- For queries: show relevant data in a clean format
-- ALWAYS show reasoning for complex requests (see above)
+- Answer the question FULLY. Don't truncate data. If the user asks "how many tickets", give the
+  count AND what it means in context (e.g. "6 tickets today — 2 critical, 3 high, 1 medium").
+- For counts and aggregations: always include a breakdown (by status, priority, or category)
+  if the data supports it. A raw number alone is not an answer.
+- For lists: use bullet points. Show the most important items first (critical → high → medium).
+- For ticket creation: confirm briefly and show the ticket ID. Plain text only — no ###, no **bold**.
+- For queries: show the data AND what it implies. "85 vendors submitted revenue this month" is
+  better answered as "85 of your vendors submitted daily revenue this month. Top earner: [name]."
+- Never pad with filler. Be direct and informative.
+- ALWAYS show reasoning for complex multi-step requests (use <reasoning> tags).
 
 FUNCTION CALLING — EXACT RULES:
 

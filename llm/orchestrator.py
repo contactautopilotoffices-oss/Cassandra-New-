@@ -382,6 +382,7 @@ class LLMOrchestrator:
         conversation_history: Optional[list[dict]] = None,
         allowed_property_ids: Optional[list[str]] = None,
         property_metadata: Optional[dict] = None,
+        on_progress: Optional[Any] = None,
     ) -> dict:
         """
         Run the LLM orchestrator (non-streaming).
@@ -390,12 +391,15 @@ class LLMOrchestrator:
             message: User's message
             org_id: Organization ID
             user_id: User ID
-            property_id: Currently selected property ID (2026-06-01)
+            property_id: Currently selected property ID
             role: User role (tenant, org_admin, etc.)
             photo_url: Photo URL from mobile upload (optional)
             conversation_history: Previous messages
             allowed_property_ids: Property IDs the user can access
             property_metadata: Property name/code mapping
+            on_progress: Optional callback(event_type: str, data: dict) for real-time
+                         CoT streaming. Called before/after each tool execution so the
+                         SSE layer can emit tool_start / tool_result events live.
 
         Returns:
             dict with answer, tool_results, citations, confidence
@@ -448,6 +452,10 @@ class LLMOrchestrator:
 
             self._logger.info(f"[ORCH] Tool call {i+1}: {tool_name}({list(tool_args.keys())})")
 
+            # Emit tool_start progress event for real-time CoT streaming
+            if on_progress:
+                on_progress("tool_start", {"step": i + 1, "tool": tool_name})
+
             # Handle classify_ticket → create_ticket chaining
             if tool_name == "classify_ticket":
                 result = self._execute_tool(tool_name, tool_args, context)
@@ -462,6 +470,8 @@ class LLMOrchestrator:
                         "category": classify_result.get("category_id") or classify_result.get("apply_category", ""),
                         "property_id": context.get("property_id", ""),
                     }
+                if on_progress:
+                    on_progress("tool_result", {"tool": tool_name, "success": result.success, "execution_ms": result.execution_ms})
                 continue  # Skip to next tool call
 
             if tool_name == "create_ticket":
@@ -512,6 +522,9 @@ class LLMOrchestrator:
                 f"{'✅' if result.success else '❌'} "
                 f"({result.execution_ms:.0f}ms)"
             )
+            # Emit tool_result progress event for real-time CoT streaming
+            if on_progress:
+                on_progress("tool_result", {"tool": tool_name, "success": result.success, "execution_ms": result.execution_ms})
 
         # ── O→A RECOVERY EDGE ──────────────────────────────────────────────────
         # If every tool call returned empty rows, give the LLM ONE retry with an
@@ -592,13 +605,19 @@ class LLMOrchestrator:
                 {
                     "role": "user",
                     "content": (
-                        f"Here are my reasoning steps:\n{chain_of_thought}\n\n"
-                        f"Here are the tool execution results:\n\n"
-                        f"{tool_results_text}\n\n"
-                        f"Please synthesize: (1) explain your thinking process using "
-                        f"<reasoning> tags, (2) present the tool results clearly, "
-                        f"(3) give the final answer. Include ticket ID if created. "
-                        f"Use Markdown. Never mention 'tool' or 'function'."
+                        f"Reasoning steps so far:\n{chain_of_thought}\n\n"
+                        f"Tool results:\n{tool_results_text}\n\n"
+                        f"Original question: {message}\n\n"
+                        f"Write the final answer. Rules:\n"
+                        f"1. Wrap any reasoning in <reasoning> tags.\n"
+                        f"2. Answer the question DIRECTLY and COMPLETELY — include the number, "
+                        f"   breakdown by priority/status/category, and what it means in context.\n"
+                        f"3. For counts: give the total AND a breakdown (e.g. '6 tickets: 2 critical, "
+                        f"   3 high, 1 medium'). Never return a raw number alone.\n"
+                        f"4. For lists: show the most important rows first.\n"
+                        f"5. For ticket creation: state the ticket ID and priority clearly.\n"
+                        f"6. Plain text only — no ### headers, no **bold**, no UUIDs visible to user.\n"
+                        f"7. Never mention 'tool', 'function', or internal system terms."
                     ),
                 },
             ]
@@ -610,9 +629,15 @@ class LLMOrchestrator:
                 synthesis_mode=True,  # Prevent blank-response bug: force text-only, no tool re-calls
             )
 
-            final_answer = self._sanitize_answer(synthesis_result.answer)
+            raw_answer = synthesis_result.answer or ""
+            # Guard against silent drop: if synthesis returned empty text, fall back to
+            # the original LLM answer (which may have reasoning tags but is better than nothing)
+            if not raw_answer.strip():
+                self._logger.warning("[ORCH] Synthesis returned empty answer — falling back to llm_result.answer")
+                raw_answer = llm_result.answer or "I processed your request but couldn't format a response. Please try again."
+            final_answer = self._sanitize_answer(raw_answer)
         else:
-            final_answer = self._sanitize_answer(llm_result.answer)
+            final_answer = self._sanitize_answer(llm_result.answer or "")
 
         # Embed ticket data in answer for mobile parseToolCall
         final_answer = self._embed_ticket_data(final_answer, tool_results)

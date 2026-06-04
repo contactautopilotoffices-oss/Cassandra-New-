@@ -325,19 +325,25 @@ def get_orchestrator():
 
 
 def queue_handler(job: QueuedJob) -> dict:
-    """Process a queued chat job."""
+    """Process a queued chat job, emitting real-time progress steps for CoT streaming."""
     orch = get_orchestrator()
     ctx = job.context
+
+    def on_progress(event_type: str, data: dict):
+        """Append a live step to the job so the SSE poller can stream it immediately."""
+        job.steps.append({"type": event_type, "data": data})
+
     return orch.run(
         message=job.message,
         org_id=ctx.get("org_id", ""),
         user_id=ctx.get("user_id", ""),
-        property_id=ctx.get("property_id", ""),  # Added 2026-06-01
+        property_id=ctx.get("property_id", ""),
         role=ctx.get("role", "tenant"),
         photo_url=ctx.get("photo_url"),
         conversation_history=ctx.get("conversation_history"),
         allowed_property_ids=ctx.get("allowed_property_ids"),
         property_metadata=ctx.get("property_metadata"),
+        on_progress=on_progress,
     )
 
 
@@ -528,6 +534,7 @@ async def chat_stream(request: Request):
         import re
         max_wait = 120
         waited = 0.0
+        emitted_steps = 0  # Track how many job.steps we've already emitted
 
         while waited < max_wait:
             await asyncio.sleep(0.5)
@@ -538,6 +545,14 @@ async def chat_stream(request: Request):
                 yield sse_format("error", {"code": "JOB_NOT_FOUND", "message": "Job expired"})
                 break
 
+            # ── Real-time CoT: emit any new steps the orchestrator has appended ──
+            # This fires while status is still "processing" so the client sees
+            # tool_start / tool_result events live, not as a batch after completion.
+            new_steps = job.steps[emitted_steps:]
+            for step in new_steps:
+                yield sse_format(step["type"], step["data"])
+                emitted_steps += 1
+
             if job.status == "queued":
                 yield sse_format("queued", {"job_id": job_id, "message": "Queued..."})
             elif job.status == "processing":
@@ -546,27 +561,19 @@ async def chat_stream(request: Request):
                 result = job.result or {}
                 response = result.get("response", "")
 
-                # Stream reasoning
+                # Stream remaining reasoning tags from final response
                 reasoning_steps = re.findall(r"<reasoning>(.*?)</reasoning>", response, re.DOTALL)
                 for step in reasoning_steps:
                     if step.strip():
                         yield sse_format("reasoning", {"message": step.strip()})
 
-                # Stream answer (without reasoning tags)
+                # Stream answer without reasoning tags, word-by-word for typing effect
                 clean = re.sub(r"<reasoning>.*?</reasoning>", "", response, flags=re.DOTALL).strip()
-                # Stream word-by-word for typing effect
                 words = clean.split()
-                chunk_size = 5  # Send 5 words at a time for smoother streaming
+                chunk_size = 5
                 for i in range(0, len(words), chunk_size):
                     chunk = " ".join(words[i:i + chunk_size]) + " "
                     yield sse_format("answer", {"token": chunk})
-
-                # Tool results
-                for tr in result.get("tool_results", []):
-                    yield sse_format("tool_result", {
-                        "tool": tr.get("tool_name", ""),
-                        "success": tr.get("success", False),
-                    })
 
                 # Done
                 yield sse_format("done", {

@@ -62,6 +62,9 @@ class QueuedJob:
         status: queued | processing | done | failed
         result: The orchestrator result (dict)
         error: Error message if failed
+        steps: Real-time progress events emitted during processing.
+               Each step is {"type": "tool_start"|"tool_result"|"reasoning", "data": {...}}.
+               The SSE poller reads this list incrementally so the client sees live progress.
     """
     job_id: str
     message: str
@@ -72,6 +75,7 @@ class QueuedJob:
     status: str = "queued"  # queued | processing | done | failed
     result: Optional[dict] = None
     error: Optional[str] = None
+    steps: list = field(default_factory=list)  # live progress steps for real-time CoT streaming
 
     def to_dict(self) -> dict:
         """Serialize to dict for JSON responses."""
