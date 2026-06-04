@@ -328,7 +328,9 @@ YOUR ROLE:
 - When users want to create tickets, query data, or get reports — make it happen
 
 ────────────────────────────────────────────────────────────────────────────────
-EVERY TURN FOLLOWS THIS LOOP: PERCEIVE → ACT → OBSERVE → RESPOND
+EVERY TURN FOLLOWS THIS PAOS LOOP IN ORDER:
+[PERCEIVE] → [ACT] → [OBSERVE] → [SYNTHESIZE]
+Do not skip a phase. Do not answer before OBSERVE.
 ────────────────────────────────────────────────────────────────────────────────
 
 ─── PHASE: PERCEIVE ───────────────────────────────────────────────────────────
@@ -407,35 +409,36 @@ DATABASE SCHEMA:
 The full live database schema — every table with its exact column names — is provided
 in the context message below under "LIVE DATABASE SCHEMA". It is generated from the
 current database at server startup, so it is always current. Use ONLY the tables and
-columns listed there. If a column you expect is not in that list, do NOT invent it —
-use the closest real column or tell the user that data isn't tracked.
+columns listed there. If a column you expect is not in that list, do NOT invent it.
+Tell the user the field is not tracked or choose a different grounded query path.
 
-DATE HANDLING RULES:
+DATE HANDLING RULES (CRITICAL):
 - The current date and time is provided in the context below. Use it as the source of truth to resolve "today", "tomorrow", "yesterday", "next week", etc.
 - Always use ISO format in database queries: created_at >= '2026-05-31T00:00:00' AND created_at < '2026-06-01T00:00:00'
 - Use the current_datetime provided in the context below as the source of truth for "today", "tomorrow", "yesterday", etc.
+- FOR MONTH NAME QUERIES ("January data", "show me February tickets"): You MUST use both >= and < to create a date range. Example: created_at >= '2026-01-01T00:00:00' AND created_at < '2026-02-01T00:00:00'
+- FOR RELATIVE DATES ("last month", "3 weeks ago", "in 10 days"): ALWAYS call the calculate_date tool FIRST to get the exact date, then use that date in your SQL query. NEVER guess or hardcode dates.
+- FOR "WHAT IS TODAY'S DATE?" or similar direct date questions: Answer directly using the current_datetime from context. Do NOT call any tool — just read the date from context and tell the user.
 
 CONVERSATION STYLE:
-- Answer the question FULLY. Don't truncate data. If the user asks "how many tickets", give the
-  count AND what it means in context (e.g. "6 tickets today — 2 critical, 3 high, 1 medium").
-- For counts and aggregations: always include a breakdown (by status, priority, or category)
-  if the data supports it. A raw number alone is not an answer.
-- For lists: use bullet points. Show the most important items first (critical → high → medium).
-- For ticket creation: confirm briefly and show the ticket ID. Plain text only — no ###, no **bold**.
-- For queries: show the data AND what it implies. "85 vendors submitted revenue this month" is
-  better answered as "85 of your vendors submitted daily revenue this month. Top earner: [name]."
-- Never pad with filler. Be direct and informative.
-- ALWAYS show reasoning for complex multi-step requests (use <reasoning> tags).
+- Professional, concise, and direct. No filler phrases, no excessive enthusiasm.
+- Answer the question asked — don't add unsolicited advice or tangential information.
+- For counts/aggregations: give the number AND a brief breakdown (by status, priority, or category).
+- For lists: use bullet points, most important first (critical → high → medium).
+- For ticket creation: confirm briefly with ticket ID. Plain text only — no ###, no **bold**.
+- Never start responses with "Great!", "Absolutely!", "I'd be happy to!", "Sure thing!", or similar filler.
+- Don't end responses with "Is there anything else I can help with?" or "Let me know if you need anything else!"
+- If the answer is simple, give the simple answer. Don't pad it.
 
 FUNCTION CALLING — EXACT RULES:
 
 1. COUNT questions ("how many tickets...") → ALWAYS use sql_query with COUNT(*):
-   Example: SELECT COUNT(*) FROM tickets WHERE organization_id = '<org_id>' AND status IN ('assigned','waitlist','pending_validation')
+   Example: SELECT COUNT(*) FROM tickets WHERE organization_id = '<org_id>' AND status IN ('open','assigned','in_progress')
    NEVER call query_tickets for a count question — it only returns 20 rows.
 
 2. "show/list tickets" → use query_tickets with the correct status filter
    - For open tickets: you CANNOT pass multiple statuses to query_tickets.
-     Instead use sql_query: SELECT * FROM tickets WHERE organization_id='<org_id>' AND status IN ('assigned','waitlist','pending_validation') LIMIT 20
+     Instead use sql_query: SELECT * FROM tickets WHERE organization_id='<org_id>' AND status IN ('open','assigned','in_progress') LIMIT 20
 
 3. "create/report/raise a ticket" → classify_ticket THEN create_ticket
    - When the user describes a problem (e.g. "leakage in cafeteria"), FIRST call classify_ticket to detect priority and category.
@@ -507,8 +510,8 @@ RETRY RULE: When the first query returns 0 rows, adjust scope and call the tool 
 Format: "I searched [X] for [Y] and found no results. Try: (1) ... (2) ... (3) ..."
 NEVER say "I don't have that information" — that phrase is banned entirely.
 
-─── PHASE: RESPOND ────────────────────────────────────────────────────────────
-RESPONSE QUALITY:
+─── PHASE: SYNTHESIZE ────────────────────────────────────────────────────────
+SYNTHESIS QUALITY:
 - If query returns 0 rows after retry: "No results found for [scope]. Try: (1) Last 90 days
   (2) Different property (3) Remove status filter." — be specific to what was searched.
 - NEVER respond with "I don't have that information" or "I can't find that" — EVER.
@@ -598,6 +601,9 @@ class OpenAIClient:
         # Default to GPT-4o-mini (from env, with proper fallback)
         self._model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         self._temperature = float(os.environ.get("OPENAI_TEMPERATURE", "0.7"))
+        self._synthesis_temperature = float(
+            os.environ.get("OPENAI_SYNTHESIS_TEMPERATURE", "0.15")
+        )
         self._max_tokens = int(os.environ.get("OPENAI_MAX_TOKENS", "2048"))
         # Extended thinking budget (0-150000 tokens)
         self._thinking_budget = int(os.environ.get("OPENAI_THINKING_BUDGET", "10000"))
@@ -607,6 +613,7 @@ class OpenAIClient:
         self._logger.info(
             f"OpenAI client initialized: model={self._model}, "
             f"temperature={self._temperature}, "
+            f"synthesis_temperature={self._synthesis_temperature}, "
             f"thinking={'enabled' if self._enable_thinking else 'disabled'}"
         )
 
@@ -648,7 +655,7 @@ class OpenAIClient:
         kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
-            "temperature": temperature or self._temperature,
+            "temperature": self._temperature if temperature is None else temperature,
             "max_tokens": max_tokens or self._max_tokens,
         }
 
@@ -666,25 +673,13 @@ class OpenAIClient:
         else:
             return self._client.chat.completions.create(**kwargs)
 
-    def chat_with_tools(
+    def _build_full_messages(
         self,
         messages: list[dict[str, str]],
         context: dict[str, Any],
         history: Optional[list[dict[str, str]]] = None,
-        synthesis_mode: bool = False,
-    ) -> LLMResult:
-        """
-        Run a single chat turn with function calling and extended thinking.
-
-        Args:
-            messages: Current conversation messages
-            context: OrchestratorContext with org_id, user_id, role, etc.
-            history: Optional conversation history (last N messages)
-
-        Returns:
-            LLMResult with answer, tool_calls, citations, confidence, thinking
-        """
-        # Build full message list
+    ) -> list[dict[str, str]]:
+        """Build the complete prompt payload shared by chat and streaming flows."""
         full_messages: list[dict[str, str]] = [
             {"role": "system", "content": SYSTEM_PROMPT},
         ]
@@ -753,6 +748,27 @@ class OpenAIClient:
 
         # Add current message
         full_messages.extend(messages)
+        return full_messages
+
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, str]],
+        context: dict[str, Any],
+        history: Optional[list[dict[str, str]]] = None,
+        synthesis_mode: bool = False,
+    ) -> LLMResult:
+        """
+        Run a single chat turn with function calling and extended thinking.
+
+        Args:
+            messages: Current conversation messages
+            context: OrchestratorContext with org_id, user_id, role, etc.
+            history: Optional conversation history (last N messages)
+
+        Returns:
+            LLMResult with answer, tool_calls, citations, confidence, thinking
+        """
+        full_messages = self._build_full_messages(messages, context, history)
 
         # Synthesis mode: force text-only — model must NOT call tools again.
         # This prevents the blank-response bug where synthesis returns tool_calls
@@ -765,6 +781,7 @@ class OpenAIClient:
                 stream=False,
                 enable_thinking=False,
                 tool_choice="none",  # No tools during synthesis
+                temperature=self._synthesis_temperature,
             )
             elapsed_ms = (time.time() - start) * 1000
         else:
@@ -841,6 +858,7 @@ class OpenAIClient:
         messages: list[dict[str, str]],
         context: dict[str, Any],
         history: Optional[list[dict[str, str]]] = None,
+        synthesis_mode: bool = False,
     ):
         """
         Stream a chat completion response with extended thinking.
@@ -848,74 +866,15 @@ class OpenAIClient:
         Yields:
             dict with type: 'thinking', 'content', 'tool_call', 'done'
         """
-        # Build full message list (same as chat_with_tools)
-        full_messages: list[dict[str, str]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-        ]
-
-        import datetime
-        from zoneinfo import ZoneInfo
-        ist = ZoneInfo("Asia/Kolkata")
-        now_ist = datetime.datetime.now(ist)
-        current_time = now_ist.strftime("%Y-%m-%d %H:%M:%S IST")
-        is_midnight = now_ist.hour < 2
-        midnight_note = "\nNOTE: It is currently just past midnight in India. If the user says 'today' or 'yesterday', ask which specific date they mean before querying.\n" if is_midnight else ""
-
-        context_info = (
-            f"Current user context:\n"
-            f"- current_datetime: {current_time}{midnight_note}\n"
-            f"- organization_id: {context.get('org_id', 'UNKNOWN')}\n"
-            f"- user_id: {context.get('user_id', 'UNKNOWN')}\n"
-            f"- role: {context.get('role', 'tenant')}\n"
-            f"- property_id (session default): {context.get('property_id', 'UNKNOWN')}\n"
-        )
-        property_metadata = context.get("property_metadata") or {}
-        if property_metadata:
-            prop_lines = []
-            for pid, meta in property_metadata.items():
-                name = meta.get("name", "")
-                code = meta.get("code", "")
-                city = meta.get("city", "")
-                label = name
-                if code and code != name:
-                    label += f" (code: {code})"
-                if city:
-                    label += f", {city}"
-                prop_lines.append(f"  • {label} → id: {pid}")
-            context_info += "- properties_in_org (use these to resolve property names to IDs):\n"
-            context_info += "\n".join(prop_lines) + "\n"
-        else:
-            context_info += f"- allowed_property_ids: {context.get('allowed_property_ids', [])}\n"
-        if context.get("photo_url"):
-            context_info += f"- photo_url: {context['photo_url']}\n"
-        full_messages.append({"role": "system", "content": context_info})
-
-        # Inject the LIVE database schema (rendered from the synced fms_schema.TABLES,
-        # the same source the SQL guard uses). Always current — never a frozen snapshot.
-        schema_block = build_schema_block()
-        if schema_block:
-            full_messages.append({
-                "role": "system",
-                "content": (
-                    "LIVE DATABASE SCHEMA (exact table and column names — use ONLY these):\n"
-                    + schema_block
-                ),
-            })
-
-        if history:
-            for h in history[-MAX_HISTORY_MESSAGES:]:
-                role = "assistant" if h.get("role") == "cassandra" else "user"
-                full_messages.append({
-                    "role": role,
-                    "content": h.get("content", ""),
-                })
-
-        full_messages.extend(messages)
+        full_messages = self._build_full_messages(messages, context, history)
 
         # Force create_ticket tool when user explicitly asks to raise a ticket
         user_text = " ".join(m.get("content", "") for m in messages if m.get("role") == "user").lower()
         force_tool = None
-        if any(k in user_text for k in ("raise a ticket", "create a ticket", "report an issue", "log a problem", "file a complaint")):
+        if (not synthesis_mode) and any(
+            k in user_text
+            for k in ("raise a ticket", "create a ticket", "report an issue", "log a problem", "file a complaint")
+        ):
             force_tool = {"type": "function", "function": {"name": "create_ticket"}}
 
         # Stream the response (thinking will be implicit per system prompt)
@@ -923,8 +882,8 @@ class OpenAIClient:
             model=self._model,
             messages=full_messages,
             tools=TOOL_DEFINITIONS,
-            tool_choice=force_tool if force_tool is not None else "auto",
-            temperature=self._temperature,
+            tool_choice="none" if synthesis_mode else (force_tool if force_tool is not None else "auto"),
+            temperature=self._synthesis_temperature if synthesis_mode else self._temperature,
             max_tokens=self._max_tokens,
             stream=True,
         )

@@ -420,6 +420,74 @@ async def health():
     }
 
 
+@app.get("/health/ready")
+async def health_ready():
+    """
+    Pre-flight readiness check for demos.
+    Tests: LLM API key, schema loaded, tools registered.
+    """
+    checks = {}
+    status = "ready"
+
+    # Check 1: LLM API key configured
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    checks["llm_api_key"] = "configured" if api_key else "missing"
+    if not api_key:
+        status = "degraded"
+
+    # Check 2: Schema loaded
+    try:
+        from cassandra.tools.fms_schema import TABLES
+        table_count = len(TABLES)
+        checks["schema"] = f"loaded ({table_count} tables)"
+        if table_count < 10:
+            checks["schema"] = f"warning: only {table_count} tables"
+            status = "degraded"
+    except Exception as e:
+        checks["schema"] = f"error: {str(e)}"
+        status = "not_ready"
+
+    # Check 3: LLM reachable (quick ping — don't block)
+    try:
+        from cassandra.llm.openai_client import OpenAIClient
+        client = OpenAIClient()
+        # Quick 2-token call to verify connectivity
+        result = client.chat(
+            messages=[{"role": "user", "content": "Say OK"}],
+            max_tokens=2,
+        )
+        checks["llm_reachable"] = "yes"
+    except Exception as e:
+        checks["llm_reachable"] = f"no: {str(e)[:100]}"
+        status = "degraded"
+
+    # Check 4: Tools registered
+    try:
+        from cassandra.llm.openai_client import TOOL_DEFINITIONS
+        tool_count = len(TOOL_DEFINITIONS)
+        tool_names = [t.get("function", {}).get("name", "?") for t in TOOL_DEFINITIONS]
+        checks["tools"] = f"{tool_count} registered: {', '.join(tool_names)}"
+    except Exception as e:
+        checks["tools"] = f"error: {str(e)}"
+        status = "degraded"
+
+    # Check 5: Supabase connection
+    try:
+        supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
+        checks["supabase"] = "configured" if supabase_url else "missing"
+        if not supabase_url:
+            status = "degraded"
+    except Exception:
+        checks["supabase"] = "error"
+        status = "degraded"
+
+    return {
+        "status": status,
+        "checks": checks,
+        "timestamp": time.time(),
+    }
+
+
 @app.get("/")
 async def root():
     return {"service": "Cassandra", "status": "running", "version": "3.1.0"}

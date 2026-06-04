@@ -184,7 +184,7 @@ class SQLEngineV2:
             # Only inject if the query doesn't explicitly say "all properties" or "org-wide"
             q_lower = query.lower()
             if not any(kw in q_lower for kw in ("all properties", "org-wide", "orgwide",
-                                                  "across properties", "organization_id")):
+                                                  "across properties")):
                 params["property_id"] = f"eq.{property_id}"
 
         # Parse WHERE clause (date filters, status, explicit filters)
@@ -210,9 +210,7 @@ class SQLEngineV2:
             count_params = {**params, "select": "id"}
             try:
                 resp = await self._http_client.get(url, headers=count_headers, params=count_params)
-                if not resp.is_success and "organization_id" in count_params:
-                    del count_params["organization_id"]
-                    resp = await self._http_client.get(url, headers=count_headers, params=count_params)
+                resp.raise_for_status()
                 cr = resp.headers.get("content-range", "*/0")
                 total = int(cr.split("/")[-1])
                 logger.info(f"[SQL_ENGINE_V2] count=exact: {table} → {total} (params={list(count_params.keys())})")
@@ -238,9 +236,6 @@ class SQLEngineV2:
 
         try:
             resp = await self._http_client.get(url, headers=base_headers, params=params)
-            if not resp.is_success and resp.status_code in (400, 404) and "organization_id" in params:
-                del params["organization_id"]
-                resp = await self._http_client.get(url, headers=base_headers, params=params)
             resp.raise_for_status()
             data = resp.json()
 
@@ -347,7 +342,8 @@ class SQLEngineV2:
             left_params = {"select": "*", "limit": "1000"}
 
             # Add org filter if applicable
-            if left_table in ["tickets", "properties", "mst_workload", "resolver_stats"]:
+            left_cols = TABLES.get(left_table, {}).get("columns", [])
+            if "organization_id" in left_cols:
                 left_params["organization_id"] = f"eq.{org_id}" if org_id else ""
 
             left_resp = await self._http_client.get(left_url, headers=headers, params=left_params)
@@ -359,7 +355,8 @@ class SQLEngineV2:
             right_params = {"select": "*", "limit": "1000"}
 
             # Add org filter if applicable
-            if right_table in ["tickets", "properties", "mst_workload", "resolver_stats"]:
+            right_cols = TABLES.get(right_table, {}).get("columns", [])
+            if "organization_id" in right_cols:
                 right_params["organization_id"] = f"eq.{org_id}" if org_id else ""
 
             right_resp = await self._http_client.get(right_url, headers=headers, params=right_params)
@@ -461,6 +458,7 @@ class SQLEngineV2:
         """Convert simplified WHERE clauses to PostgREST query params.
 
         Handles: property_id, organization_id, status, date columns, vendor_id, user_id.
+        Supports compound conditions: multiple statuses (IN), date ranges (>=, <).
         """
         from datetime import date, timedelta
         params: dict[str, str] = {}
@@ -477,48 +475,67 @@ class SQLEngineV2:
             if org_id:
                 params["organization_id"] = f"eq.{org_id}"
 
-        # status filter
-        status_match = re.search(r"status\s*=\s*'([^']+)'", where, re.IGNORECASE)
-        if status_match:
-            params["status"] = f"eq.{status_match.group(1)}"
+        # status filter — support IN clause for multiple statuses
+        in_match = re.search(r"status\s+IN\s*\(([^)]+)\)", where, re.IGNORECASE)
+        if in_match:
+            # Extract all quoted status values: IN ('open', 'assigned', 'in_progress')
+            statuses = re.findall(r"'([^']+)'", in_match.group(1))
+            if statuses:
+                params["status"] = f"in.({','.join(statuses)})"
+        else:
+            # Single status
+            status_match = re.search(r"status\s*=\s*'([^']+)'", where, re.IGNORECASE)
+            if status_match:
+                params["status"] = f"eq.{status_match.group(1)}"
 
         # ── Date / time range filters ─────────────────────────────────────────
         # Detect which date column is referenced (revenue_date, entry_date, created_at, etc.)
         date_col_match = re.search(
-            r'\b(revenue_date|entry_date|created_at|updated_at|planned_date|done_date|date)\b',
+            r'\b(revenue_date|entry_date|created_at|updated_at|planned_date|done_date|reading_date|completion_date|date)\b',
             where, re.IGNORECASE
         )
         date_col = date_col_match.group(1) if date_col_match else "created_at"
 
         today = date.today()
 
-        # "CURRENT_DATE - INTERVAL '1 day'" / "yesterday" patterns
-        if re.search(r"INTERVAL\s+['\"]1\s+day['\"]|yesterday", where, re.IGNORECASE):
-            yesterday = (today - timedelta(days=1)).isoformat()
-            params[date_col] = f"gte.{yesterday}T00:00:00"
+        # ── COMPOUND DATE RANGES: >= AND < (e.g., "January data") ──
+        # Match: created_at >= '2026-01-01' AND created_at < '2026-02-01'
+        range_match = re.search(
+            rf"{date_col}\s*>=\s*['\"](\d{{4}}-\d{{2}}-\d{{2}})['\"].*?{date_col}\s*<\s*['\"](\d{{4}}-\d{{2}}-\d{{2}})['\"]",
+            where, re.IGNORECASE | re.DOTALL
+        )
+        if range_match:
+            # PostgREST compound filter: and=(col.gte.val,col.lt.val)
+            params["and"] = f"({date_col}.gte.{range_match.group(1)}T00:00:00,{date_col}.lt.{range_match.group(2)}T00:00:00)"
+        else:
+            # Single-bound date filters
+            # "CURRENT_DATE - INTERVAL '1 day'" / "yesterday" patterns
+            if re.search(r"INTERVAL\s+['\"]1\s+day['\"]|yesterday", where, re.IGNORECASE):
+                yesterday = (today - timedelta(days=1)).isoformat()
+                params[date_col] = f"gte.{yesterday}T00:00:00"
 
-        # "today" / bare CURRENT_DATE (no subtraction offset)
-        elif re.search(r"\btoday\b|\bCURRENT_DATE\b", where, re.IGNORECASE):
-            params[date_col] = f"gte.{today.isoformat()}T00:00:00"
+            # "today" / bare CURRENT_DATE (no subtraction offset)
+            elif re.search(r"\btoday\b|\bCURRENT_DATE\b", where, re.IGNORECASE):
+                params[date_col] = f"gte.{today.isoformat()}T00:00:00"
 
-        # "last N days" / "INTERVAL 'N days'"
-        elif m := re.search(r"INTERVAL\s+['\"](\d+)\s+day", where, re.IGNORECASE):
-            cutoff = (today - timedelta(days=int(m.group(1)))).isoformat()
-            params[date_col] = f"gte.{cutoff}T00:00:00"
+            # "last N days" / "INTERVAL 'N days'"
+            elif m := re.search(r"INTERVAL\s+['\"](\d+)\s+day", where, re.IGNORECASE):
+                cutoff = (today - timedelta(days=int(m.group(1)))).isoformat()
+                params[date_col] = f"gte.{cutoff}T00:00:00"
 
-        # "this week"
-        elif re.search(r"this\s+week", where, re.IGNORECASE):
-            start_of_week = (today - timedelta(days=today.weekday())).isoformat()
-            params[date_col] = f"gte.{start_of_week}T00:00:00"
+            # "this week"
+            elif re.search(r"this\s+week", where, re.IGNORECASE):
+                start_of_week = (today - timedelta(days=today.weekday())).isoformat()
+                params[date_col] = f"gte.{start_of_week}T00:00:00"
 
-        # "this month"
-        elif re.search(r"this\s+month", where, re.IGNORECASE):
-            start_of_month = today.replace(day=1).isoformat()
-            params[date_col] = f"gte.{start_of_month}T00:00:00"
+            # "this month"
+            elif re.search(r"this\s+month", where, re.IGNORECASE):
+                start_of_month = today.replace(day=1).isoformat()
+                params[date_col] = f"gte.{start_of_month}T00:00:00"
 
-        # explicit ISO date  ">= '2026-05-01'"
-        elif m := re.search(r">=\s*['\"](\d{4}-\d{2}-\d{2})['\"]", where):
-            params[date_col] = f"gte.{m.group(1)}T00:00:00"
+            # explicit ISO date  ">= '2026-05-01'"
+            elif m := re.search(r">=\s*['\"](\d{4}-\d{2}-\d{2})['\"]", where):
+                params[date_col] = f"gte.{m.group(1)}T00:00:00"
 
         return params
 

@@ -44,6 +44,8 @@ from cassandra.tools.voice_enroll import VoiceEnrollTool
 
 logger = logging.getLogger("cassandra.llm.orchestrator")
 
+TOOL_RESULT_TRUNCATION_CHARS = 6000
+
 
 # ---------------------------------------------------------------------------
 # Stream Chunk
@@ -335,14 +337,107 @@ class LLMOrchestrator:
                 try:
                     result_json = json.dumps(tr.result, indent=2, default=str)
                     # Truncate long results
-                    if len(result_json) > 1000:
-                        result_json = result_json[:1000] + "\n... (truncated)"
+                    if len(result_json) > TOOL_RESULT_TRUNCATION_CHARS:
+                        result_json = (
+                            result_json[:TOOL_RESULT_TRUNCATION_CHARS]
+                            + f"\n... (truncated at {TOOL_RESULT_TRUNCATION_CHARS} chars)"
+                        )
                     lines.append(f"```json\n{result_json}\n```\n")
                 except Exception:
                     lines.append(f"{tr.result}\n")
             if tr.error:
                 lines.append(f"**Error:** {tr.error}\n")
         return "\n".join(lines)
+
+    def _summarize_retry_context(
+        self,
+        initial_tool_calls: list[dict[str, Any]],
+        initial_results: list[ToolResult],
+        retry_tool_calls: list[dict[str, Any]],
+        retry_results: list[ToolResult],
+    ) -> str:
+        """Describe what changed during O→A retry so synthesis stays grounded."""
+        def _tool_list(calls: list[dict[str, Any]]) -> str:
+            if not calls:
+                return "none"
+            return ", ".join(tc.get("name", "unknown") for tc in calls)
+
+        def _query_preview(calls: list[dict[str, Any]]) -> str:
+            previews = []
+            for tc in calls:
+                args = tc.get("arguments", {})
+                if "query" in args:
+                    query = str(args["query"]).strip().replace("\n", " ")
+                    previews.append(query[:180])
+            return " | ".join(previews[:2]) if previews else "n/a"
+
+        def _result_summary(results: list[ToolResult]) -> str:
+            parts = []
+            for tr in results:
+                tool_name = getattr(tr, "tool_name", getattr(tr, "name", "unknown"))
+                if tr.success:
+                    if isinstance(tr.result, list):
+                        parts.append(f"{tool_name}: {len(tr.result)} row(s)")
+                    elif isinstance(tr.result, dict):
+                        parts.append(f"{tool_name}: 1 object")
+                    else:
+                        parts.append(f"{tool_name}: success")
+                else:
+                    parts.append(f"{tool_name}: error={tr.error}")
+            return "; ".join(parts) if parts else "none"
+
+        return (
+            "O→A retry summary:\n"
+            f"- Initial tools: {_tool_list(initial_tool_calls)}\n"
+            f"- Initial results: {_result_summary(initial_results)}\n"
+            f"- Retry tools: {_tool_list(retry_tool_calls)}\n"
+            f"- Retry query preview: {_query_preview(retry_tool_calls)}\n"
+            f"- Retry results: {_result_summary(retry_results)}\n"
+            "- Use the latest successful grounded result. If scope broadened, state that plainly."
+        )
+
+    def _build_synthesis_messages(
+        self,
+        message: str,
+        first_answer: str,
+        tool_results_text: str,
+        retry_context_text: str = "",
+    ) -> list[dict[str, str]]:
+        """Build a single synthesis prompt used by both streaming and non-streaming flows."""
+        import re
+
+        reasoning_blocks = re.findall(r"<reasoning>(.*?)</reasoning>", first_answer or "", re.DOTALL)
+        chain_of_thought = "\n".join(
+            f"<reasoning>{rb.strip()}</reasoning>" for rb in reasoning_blocks if rb.strip()
+        )
+        retry_block = f"{retry_context_text}\n\n" if retry_context_text else ""
+
+        return [
+            {"role": "user", "content": message},
+            {
+                "role": "assistant",
+                "content": "I'll use tools to help answer this. Let me execute the necessary actions.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Reasoning steps so far:\n{chain_of_thought or '[none]'}\n\n"
+                    f"{retry_block}"
+                    f"Tool results:\n{tool_results_text}\n\n"
+                    f"Original question: {message}\n\n"
+                    "Write the final answer. Rules:\n"
+                    "1. Wrap any reasoning in <reasoning> tags.\n"
+                    "2. Answer the question directly and completely using only grounded results.\n"
+                    "3. If a retry changed scope, say so explicitly and briefly.\n"
+                    "4. For counts: give the total and any supported breakdown.\n"
+                    "5. For lists: show the most important rows first.\n"
+                    "6. For ticket creation: state the ticket ID and priority clearly.\n"
+                    "7. If tools failed or stayed inconclusive, say exactly what failed instead of guessing.\n"
+                    "8. Plain text only — no markdown headers, no bold, no UUIDs visible to user.\n"
+                    "9. Never mention 'tool', 'function', or internal system terms."
+                ),
+            },
+        ]
 
     def _sanitize_answer(self, answer: str) -> str:
         """Strip any leaked internal terms from the answer."""
@@ -441,6 +536,7 @@ class LLMOrchestrator:
 
         tool_results: list[ToolResult] = []
         all_tool_calls = llm_result.tool_calls
+        retry_context_text = ""
 
         # Execute tool calls (up to MAX_TOOL_CALLS)
         classify_result: dict[str, Any] | None = None
@@ -541,8 +637,31 @@ class LLMOrchestrator:
                     for tr in results
                 )
 
-            if _all_empty(tool_results):
-                self._logger.info("[ORCH] O→A recovery: all tools returned empty — retrying with broadened scope")
+            def _date_filtered_zero(results: list[ToolResult], user_message: str) -> bool:
+                """Check if a date-filtered query returned 0 rows — signals wrong date scope."""
+                msg_lower = user_message.lower()
+                has_date_context = any(kw in msg_lower for kw in [
+                    'january', 'february', 'march', 'april', 'may', 'june',
+                    'july', 'august', 'september', 'october', 'november', 'december',
+                    'last month', 'last week', 'yesterday', 'today',
+                    'this month', 'this week', 'this year',
+                ])
+                if not has_date_context:
+                    return False
+                return any(
+                    tr.success and isinstance(tr.result, list) and len(tr.result) == 0
+                    for tr in results
+                    if getattr(tr, 'tool_name', getattr(tr, 'name', '')) in ('sql_query',)
+                )
+
+            should_retry = _all_empty(tool_results) or _date_filtered_zero(tool_results, message)
+
+            if should_retry:
+                if _all_empty(tool_results):
+                    self._logger.info("[ORCH] O→A recovery: all tools returned empty — retrying with broadened scope")
+                else:
+                    self._logger.info("[ORCH] O→A recovery: date-filtered query returned 0 rows — retrying with broader date scope")
+                initial_results = list(tool_results)
                 retry_messages = [
                     {"role": "user", "content": message},
                     {
@@ -574,6 +693,12 @@ class LLMOrchestrator:
                             targs = {**targs, "photo_url": photo_url}
                         retry_results.append(self._execute_tool(tname, targs, context))
                         self._logger.info(f"[ORCH] Retry tool: {tname} → {'✅' if retry_results[-1].success else '❌'}")
+                    retry_context_text = self._summarize_retry_context(
+                        initial_tool_calls=all_tool_calls[: self.MAX_TOOL_CALLS],
+                        initial_results=initial_results,
+                        retry_tool_calls=retry_llm.tool_calls[: self.MAX_TOOL_CALLS],
+                        retry_results=retry_results,
+                    )
                     # Use retry results if they have data, otherwise keep empty for LLM to explain
                     if not _all_empty(retry_results):
                         tool_results = retry_results
@@ -586,46 +711,17 @@ class LLMOrchestrator:
         if tool_results:
             # Build tool results message
             tool_results_text = self._format_tool_results(tool_results)
-
-            # Extract <reasoning> tags from first LLM call's answer
-            first_answer = llm_result.answer or ""
-            import re
-            reasoning_blocks = re.findall(r"<reasoning>(.*?)</reasoning>", first_answer, re.DOTALL)
-            chain_of_thought = "\n".join(f"<reasoning>{rb.strip()}</reasoning>" for rb in reasoning_blocks)
-
-            messages = [
-                {"role": "user", "content": message},
-                {
-                    "role": "assistant",
-                    "content": (
-                        "I'll use tools to help answer this. "
-                        "Let me execute the necessary actions."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Reasoning steps so far:\n{chain_of_thought}\n\n"
-                        f"Tool results:\n{tool_results_text}\n\n"
-                        f"Original question: {message}\n\n"
-                        f"Write the final answer. Rules:\n"
-                        f"1. Wrap any reasoning in <reasoning> tags.\n"
-                        f"2. Answer the question DIRECTLY and COMPLETELY — include the number, "
-                        f"   breakdown by priority/status/category, and what it means in context.\n"
-                        f"3. For counts: give the total AND a breakdown (e.g. '6 tickets: 2 critical, "
-                        f"   3 high, 1 medium'). Never return a raw number alone.\n"
-                        f"4. For lists: show the most important rows first.\n"
-                        f"5. For ticket creation: state the ticket ID and priority clearly.\n"
-                        f"6. Plain text only — no ### headers, no **bold**, no UUIDs visible to user.\n"
-                        f"7. Never mention 'tool', 'function', or internal system terms."
-                    ),
-                },
-            ]
+            messages = self._build_synthesis_messages(
+                message=message,
+                first_answer=llm_result.answer or "",
+                tool_results_text=tool_results_text,
+                retry_context_text=retry_context_text,
+            )
 
             synthesis_result = self._llm.chat_with_tools(
                 messages=messages,
                 context=context,
-                history=[],  # Don't include history in synthesis
+                history=history,
                 synthesis_mode=True,  # Prevent blank-response bug: force text-only, no tool re-calls
             )
 
@@ -738,6 +834,7 @@ class LLMOrchestrator:
         full_response = ""
         in_reasoning_tag = False
         current_reasoning = ""
+        tag_buffer = ""  # Buffer for incomplete tags across SSE chunks
 
         for chunk in self._llm.stream_chat(
             messages=messages,
@@ -747,6 +844,11 @@ class LLMOrchestrator:
             if chunk.get("type") == "content":
                 content = chunk.get("content", "")
                 full_response += content
+
+                # Prepend any buffered tag fragment from previous chunk
+                if tag_buffer:
+                    content = tag_buffer + content
+                    tag_buffer = ""
 
                 # Parse reasoning tags from streamed content
                 i = 0
@@ -758,6 +860,12 @@ class LLMOrchestrator:
                             current_reasoning = ""
                             i += 11
                             continue
+                        # Buffer potential partial opening tag at chunk boundary
+                        if i >= len(content) - 10:
+                            remaining = content[i:]
+                            if "<reasoning>"[:len(remaining)] == remaining:
+                                tag_buffer = remaining
+                                break
                     else:
                         # Look for closing tag
                         if content[i:i+12] == "</reasoning>":
@@ -768,6 +876,12 @@ class LLMOrchestrator:
                             current_reasoning = ""
                             i += 12
                             continue
+                        # Buffer potential partial closing tag at chunk boundary
+                        if i >= len(content) - 11:
+                            remaining = content[i:]
+                            if "</reasoning>"[:len(remaining)] == remaining:
+                                tag_buffer = remaining
+                                break
                         # Add character to current reasoning
                         current_reasoning += content[i]
                     i += 1
@@ -878,39 +992,31 @@ class LLMOrchestrator:
         # Synthesize with second LLM call if tools were used
         if tool_results:
             tool_results_text = self._format_tool_results(tool_results)
+            messages = self._build_synthesis_messages(
+                message=message,
+                first_answer=llm_result.answer or full_response,
+                tool_results_text=tool_results_text,
+            )
 
-            messages = [
-                {"role": "user", "content": message},
-                {
-                    "role": "assistant",
-                    "content": "I'll use tools to help answer this.",
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Results:\n\n{tool_results_text}\n\n"
-                        f"Synthesize into a clear answer. Include ticket ID if created."
-                    ),
-                },
-            ]
-
-            # Stream synthesis response
+            # Stream synthesis response and accumulate tokens for final answer
+            # FIX: Don't call LLM twice — accumulate streamed tokens instead
+            synthesized_answer = ""
             for chunk in self._llm.stream_chat(
                 messages=messages,
                 context=context,
-                history=[],
+                history=history,
+                synthesis_mode=True,
             ):
                 if chunk.get("type") == "content":
-                    yield StreamChunk("answer", {"text": chunk.get("content", "")})
+                    token = chunk.get("content", "")
+                    synthesized_answer += token
+                    yield StreamChunk("answer", {"text": token})
 
-            synthesis = self._llm.chat_with_tools(
-                messages=messages,
-                context=context,
-                history=[],
-                synthesis_mode=True,  # Prevent blank-response bug: force text-only, no tool re-calls
-            )
-
-            final_answer = self._sanitize_answer(synthesis.answer)
+            raw_answer = synthesized_answer.strip()
+            if not raw_answer:
+                self._logger.warning("[ORCH] Stream synthesis returned empty answer — falling back to llm_result.answer")
+                raw_answer = llm_result.answer or full_response or "I processed your request but couldn't format a response. Please try again."
+            final_answer = self._sanitize_answer(raw_answer)
         else:
             final_answer = self._sanitize_answer(llm_result.answer)
 
