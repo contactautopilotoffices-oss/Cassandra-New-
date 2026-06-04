@@ -267,6 +267,26 @@ async def validate_membership(user_id: str, property_id: str) -> Optional[dict]:
                 if data and len(data) > 0:
                     membership = data[0]
                     if membership.get("is_active", True):  # is_active=True means active
+                        # Backfill organization_id from the property if the membership row
+                        # doesn't carry it (property_memberships.organization_id is often null).
+                        # Step 2 already resolved organization_id from the properties table.
+                        if not membership.get("organization_id") and organization_id:
+                            membership["organization_id"] = organization_id
+                            logger.info("[AUTH] Derived org_id from property. org=%s", organization_id)
+                        # Last-resort: pull the user's org directly from organization_memberships.
+                        if not membership.get("organization_id"):
+                            om_url = f"{FMS_SUPABASE_URL}/rest/v1/organization_memberships"
+                            om_params = {
+                                "select": "organization_id",
+                                "user_id": f"eq.{user_id}",
+                                "limit": "1",
+                            }
+                            om_resp = await client.get(om_url, headers=headers, params=om_params)
+                            if om_resp.status_code == 200:
+                                om_data = om_resp.json()
+                                if om_data and om_data[0].get("organization_id"):
+                                    membership["organization_id"] = om_data[0]["organization_id"]
+                                    logger.info("[AUTH] Derived org_id from organization_memberships. org=%s", membership["organization_id"])
                         logger.info("[AUTH] User found in property_memberships. role=%s", membership.get("role"))
                         return membership
                     else:
