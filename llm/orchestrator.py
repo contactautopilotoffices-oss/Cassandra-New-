@@ -465,14 +465,41 @@ class LLMOrchestrator:
                 continue  # Skip to next tool call
 
             if tool_name == "create_ticket":
-                # If we just classified, use the classified priority/category
-                if classify_result and pending_create_ticket_args:
+                # --- Auto-classify if LLM skipped classify_ticket (e.g. force_tool) ---
+                if classify_result is None:
+                    _title = tool_args.get("title", "")
+                    _desc = tool_args.get("description", "")
+                    if _title or _desc:
+                        auto_cl = self._execute_tool(
+                            "classify_ticket",
+                            {"title": _title, "description": _desc},
+                            context,
+                        )
+                        if auto_cl.success and auto_cl.result:
+                            classify_result = auto_cl.result
+                            tool_results.append(auto_cl)
+                            self._logger.info(
+                                f"[ORCH] Auto-classify: priority={classify_result.get('apply_priority')}"
+                            )
+
+                # Merge classified priority/category if available
+                if classify_result:
+                    auto_priority = classify_result.get("apply_priority", "medium")
+                    if not tool_args.get("priority") or tool_args.get("priority") == "medium":
+                        tool_args = {**tool_args, "priority": auto_priority}
+
+                # If we had pending_create_ticket_args (explicit classify→create chain), apply them
+                if pending_create_ticket_args:
                     tool_args = {**tool_args, **pending_create_ticket_args}
-                    # Remove empty values
                     tool_args = {k: v for k, v in tool_args.items() if v}
                     self._logger.info(f"[ORCH] Injecting classification: priority={pending_create_ticket_args.get('priority')}")
-                    classify_result = None  # Reset after use
+                    classify_result = None
                     pending_create_ticket_args = None
+
+                # Always ensure property_id comes from context if LLM left it blank
+                if not tool_args.get("property_id"):
+                    tool_args = {**tool_args, "property_id": context.get("property_id", "")}
+
                 # Inject photo_url if available
                 if photo_url:
                     tool_args = {**tool_args, "photo_url": photo_url}
@@ -767,13 +794,41 @@ class LLMOrchestrator:
                     "tool": tool_name,
                     "message": "Creating ticket...",
                 })
-                # If we just classified, use the classified priority/category
-                if classify_result and pending_create_ticket_args:
+                # Auto-classify if LLM skipped classify_ticket
+                if classify_result is None:
+                    _title = tool_args.get("title", "")
+                    _desc = tool_args.get("description", "")
+                    if _title or _desc:
+                        auto_cl = self._execute_tool(
+                            "classify_ticket",
+                            {"title": _title, "description": _desc},
+                            context,
+                        )
+                        if auto_cl.success and auto_cl.result:
+                            classify_result = auto_cl.result
+                            tool_results.append(auto_cl)
+                            self._logger.info(
+                                f"[ORCH] Auto-classify (stream): priority={classify_result.get('apply_priority')}"
+                            )
+
+                # Merge classified priority
+                if classify_result:
+                    auto_priority = classify_result.get("apply_priority", "medium")
+                    if not tool_args.get("priority") or tool_args.get("priority") == "medium":
+                        tool_args = {**tool_args, "priority": auto_priority}
+
+                # If we had pending_create_ticket_args (explicit chain), apply them
+                if pending_create_ticket_args:
                     tool_args = {**tool_args, **pending_create_ticket_args}
                     tool_args = {k: v for k, v in tool_args.items() if v}
                     self._logger.info(f"[ORCH] Injecting classification: priority={pending_create_ticket_args.get('priority')}")
                     classify_result = None
                     pending_create_ticket_args = None
+
+                # Always ensure property_id from context if LLM left it blank
+                if not tool_args.get("property_id"):
+                    tool_args = {**tool_args, "property_id": context.get("property_id", "")}
+
                 # Inject photo_url
                 if photo_url:
                     tool_args = {**tool_args, "photo_url": photo_url}

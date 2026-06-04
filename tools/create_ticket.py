@@ -82,7 +82,7 @@ class CreateTicketTool(Tool):
         "Returns the created ticket with ID."
     )
 
-    VALID_PRIORITIES = {"low", "medium", "high", "critical"}
+    VALID_PRIORITIES = {"low", "medium", "high", "urgent", "critical"}
 
     def execute(
         self,
@@ -104,13 +104,17 @@ class CreateTicketTool(Tool):
                 error="MISSING_TITLE: 'title' argument is required",
             )
 
-        property_id: str = arguments.get("property_id", "")
+        # Fall back to session property_id if LLM didn't inject it
+        property_id: str = (
+            arguments.get("property_id", "")
+            or getattr(context, "property_id", "")
+        )
         if not property_id:
             return ToolResult(
                 call_id=call_id,
                 tool_name=self.name,
                 success=False,
-                error="MISSING_PROPERTY_ID: 'property_id' argument is required",
+                error="MISSING_PROPERTY_ID: 'property_id' not in args and not in session context",
             )
 
         # Validate priority

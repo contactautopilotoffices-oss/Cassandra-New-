@@ -1,28 +1,29 @@
 {
   "_meta": {
-    "version": "1.0.0",
+    "version": "2.0.0",
     "generated": "2026-06-04",
     "source": "FMS DB (xvucakstcmtfoanmgcql)",
-    "description": "Foreign Key relationships for SQL Engine v2. All JOINs must use these verified relationships."
+    "description": "Complete FK graph \u2014 all tables mapped. 207 relationships covering every table with _id FK columns.",
+    "relationship_count": 207
   },
   "relationships": [
     {
-      "id": "tickets_properties",
+      "id": "tickets_property_id",
       "from": "tickets",
       "from_col": "property_id",
       "to": "properties",
       "to_col": "id",
-      "description": "Each ticket belongs to one property",
+      "description": "Ticket belongs to property",
       "direction": "tickets -> properties",
       "verified": true
     },
     {
-      "id": "tickets_organizations",
+      "id": "tickets_organization_id",
       "from": "tickets",
       "from_col": "organization_id",
       "to": "organizations",
       "to_col": "id",
-      "description": "Each ticket belongs to one organization",
+      "description": "Ticket belongs to org",
       "direction": "tickets -> organizations",
       "verified": true
     },
@@ -34,8 +35,7 @@
       "to_col": "id",
       "description": "Ticket creator",
       "direction": "tickets -> users",
-      "verified": true,
-      "note": "Use raised_by NOT created_by"
+      "verified": true
     },
     {
       "id": "tickets_assigned_to",
@@ -43,224 +43,2226 @@
       "from_col": "assigned_to",
       "to": "users",
       "to_col": "id",
-      "description": "Assigned staff member",
+      "description": "Assigned staff",
       "direction": "tickets -> users",
       "verified": true
     },
     {
-      "id": "tickets_category",
+      "id": "tickets_category_id",
       "from": "tickets",
       "from_col": "category_id",
       "to": "issue_categories",
       "to_col": "id",
-      "description": "Ticket issue category",
+      "description": "Ticket category",
       "direction": "tickets -> issue_categories",
       "verified": true
     },
     {
-      "id": "properties_organizations",
+      "id": "tickets_skill_group_id",
+      "from": "tickets",
+      "from_col": "skill_group_id",
+      "to": "skill_groups",
+      "to_col": "id",
+      "description": "Required skill group",
+      "direction": "tickets -> skill_groups",
+      "verified": true
+    },
+    {
+      "id": "tickets_original_skill_group_id",
+      "from": "tickets",
+      "from_col": "original_skill_group_id",
+      "to": "skill_groups",
+      "to_col": "id",
+      "description": "Original skill group",
+      "direction": "tickets -> skill_groups",
+      "verified": true
+    },
+    {
+      "id": "tickets_hierarchy_id",
+      "from": "tickets",
+      "from_col": "hierarchy_id",
+      "to": "escalation_hierarchies",
+      "to_col": "id",
+      "description": "Escalation hierarchy",
+      "direction": "tickets -> escalation_hierarchies",
+      "verified": true
+    },
+    {
+      "id": "properties_organization_id",
       "from": "properties",
       "from_col": "organization_id",
       "to": "organizations",
       "to_col": "id",
-      "description": "Property belongs to organization",
+      "description": "Property belongs to org",
       "direction": "properties -> organizations",
       "verified": true
     },
     {
-      "id": "electricity_readings_properties",
+      "id": "organization_memberships_organization_id",
+      "from": "organization_memberships",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Membership org",
+      "direction": "organization_memberships -> organizations",
+      "verified": true
+    },
+    {
+      "id": "organization_memberships_user_id",
+      "from": "organization_memberships",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Membership user",
+      "direction": "organization_memberships -> users",
+      "verified": true
+    },
+    {
+      "id": "property_memberships_organization_id",
+      "from": "property_memberships",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Property membership org",
+      "direction": "property_memberships -> organizations",
+      "verified": true
+    },
+    {
+      "id": "property_memberships_property_id",
+      "from": "property_memberships",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Property membership property",
+      "direction": "property_memberships -> properties",
+      "verified": true
+    },
+    {
+      "id": "property_memberships_user_id",
+      "from": "property_memberships",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Property membership user",
+      "direction": "property_memberships -> users",
+      "verified": true
+    },
+    {
+      "id": "user_roles_organization_id",
+      "from": "user_roles",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "User role org",
+      "direction": "user_roles -> organizations",
+      "verified": true
+    },
+    {
+      "id": "user_roles_user_id",
+      "from": "user_roles",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "User role user",
+      "direction": "user_roles -> users",
+      "verified": true
+    },
+    {
+      "id": "user_sessions_user_id",
+      "from": "user_sessions",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Session user",
+      "direction": "user_sessions -> users",
+      "verified": true
+    },
+    {
+      "id": "electricity_meters_property_id",
+      "from": "electricity_meters",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Meter at property",
+      "direction": "electricity_meters -> properties",
+      "verified": true
+    },
+    {
+      "id": "electricity_readings_property_id",
       "from": "electricity_readings",
       "from_col": "property_id",
       "to": "properties",
       "to_col": "id",
-      "description": "Energy readings for a property",
+      "description": "Reading at property",
       "direction": "electricity_readings -> properties",
       "verified": true
     },
     {
-      "id": "electricity_readings_meters",
+      "id": "electricity_readings_meter_id",
       "from": "electricity_readings",
       "from_col": "meter_id",
       "to": "electricity_meters",
       "to_col": "id",
-      "description": "Energy reading from a specific meter",
+      "description": "Reading from meter",
       "direction": "electricity_readings -> electricity_meters",
       "verified": true
     },
     {
-      "id": "mst_workload_users",
-      "from": "mst_workload",
+      "id": "electricity_readings_multiplier_id",
+      "from": "electricity_readings",
+      "from_col": "multiplier_id",
+      "to": "meter_multipliers",
+      "to_col": "id",
+      "description": "Meter multiplier",
+      "direction": "electricity_readings -> meter_multipliers",
+      "verified": true
+    },
+    {
+      "id": "electricity_readings_tariff_id",
+      "from": "electricity_readings",
+      "from_col": "tariff_id",
+      "to": "grid_tariffs",
+      "to_col": "id",
+      "description": "Applicable tariff",
+      "direction": "electricity_readings -> grid_tariffs",
+      "verified": true
+    },
+    {
+      "id": "meter_multipliers_meter_id",
+      "from": "meter_multipliers",
+      "from_col": "meter_id",
+      "to": "electricity_meters",
+      "to_col": "id",
+      "description": "Multiplier for meter",
+      "direction": "meter_multipliers -> electricity_meters",
+      "verified": true
+    },
+    {
+      "id": "grid_tariffs_property_id",
+      "from": "grid_tariffs",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Tariff for property",
+      "direction": "grid_tariffs -> properties",
+      "verified": true
+    },
+    {
+      "id": "ocr_audit_logs_reading_id",
+      "from": "ocr_audit_logs",
+      "from_col": "reading_id",
+      "to": "electricity_readings",
+      "to_col": "id",
+      "description": "OCR log for reading",
+      "direction": "ocr_audit_logs -> electricity_readings",
+      "verified": true
+    },
+    {
+      "id": "ocr_audit_logs_property_id",
+      "from": "ocr_audit_logs",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "OCR log at property",
+      "direction": "ocr_audit_logs -> properties",
+      "verified": true
+    },
+    {
+      "id": "generators_property_id",
+      "from": "generators",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Generator at property",
+      "direction": "generators -> properties",
+      "verified": true
+    },
+    {
+      "id": "diesel_readings_generator_id",
+      "from": "diesel_readings",
+      "from_col": "generator_id",
+      "to": "generators",
+      "to_col": "id",
+      "description": "Reading from generator",
+      "direction": "diesel_readings -> generators",
+      "verified": true
+    },
+    {
+      "id": "diesel_readings_property_id",
+      "from": "diesel_readings",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Diesel reading at property",
+      "direction": "diesel_readings -> properties",
+      "verified": true
+    },
+    {
+      "id": "diesel_readings_tariff_id",
+      "from": "diesel_readings",
+      "from_col": "tariff_id",
+      "to": "dg_tariffs",
+      "to_col": "id",
+      "description": "DG tariff applied",
+      "direction": "diesel_readings -> dg_tariffs",
+      "verified": true
+    },
+    {
+      "id": "dg_tariffs_generator_id",
+      "from": "dg_tariffs",
+      "from_col": "generator_id",
+      "to": "generators",
+      "to_col": "id",
+      "description": "Tariff for generator",
+      "direction": "dg_tariffs -> generators",
+      "verified": true
+    },
+    {
+      "id": "vendors_organization_id",
+      "from": "vendors",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Vendor belongs to org",
+      "direction": "vendors -> organizations",
+      "verified": true
+    },
+    {
+      "id": "vendors_property_id",
+      "from": "vendors",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Vendor scoped to property",
+      "direction": "vendors -> properties",
+      "verified": true
+    },
+    {
+      "id": "vendors_user_id",
+      "from": "vendors",
       "from_col": "user_id",
       "to": "users",
       "to_col": "id",
-      "description": "MST workload for a user",
-      "direction": "mst_workload -> users",
+      "description": "Vendor user account",
+      "direction": "vendors -> users",
       "verified": true
     },
     {
-      "id": "mst_workload_properties",
-      "from": "mst_workload",
+      "id": "vendor_daily_revenue_vendor_id",
+      "from": "vendor_daily_revenue",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "Revenue entry for vendor",
+      "direction": "vendor_daily_revenue -> vendors",
+      "verified": true
+    },
+    {
+      "id": "vendor_daily_revenue_property_id",
+      "from": "vendor_daily_revenue",
       "from_col": "property_id",
       "to": "properties",
       "to_col": "id",
-      "description": "MST workload at a property",
-      "direction": "mst_workload -> properties",
+      "description": "Revenue entry at property",
+      "direction": "vendor_daily_revenue -> properties",
       "verified": true
     },
     {
-      "id": "resolver_stats_users",
-      "from": "resolver_stats",
-      "from_col": "user_id",
-      "to": "users",
+      "id": "vendor_daily_revenue_organization_id",
+      "from": "vendor_daily_revenue",
+      "from_col": "organization_id",
+      "to": "organizations",
       "to_col": "id",
-      "description": "Resolver stats for a user",
-      "direction": "resolver_stats -> users",
+      "description": "Revenue entry org",
+      "direction": "vendor_daily_revenue -> organizations",
       "verified": true
     },
     {
-      "id": "resolver_stats_properties",
-      "from": "resolver_stats",
-      "from_col": "property_id",
-      "to": "properties",
-      "to_col": "id",
-      "description": "Resolver stats at a property",
-      "direction": "resolver_stats -> properties",
-      "verified": true
-    },
-    {
-      "id": "ticket_comments_tickets",
-      "from": "ticket_comments",
-      "from_col": "ticket_id",
-      "to": "tickets",
-      "to_col": "id",
-      "description": "Comment belongs to a ticket",
-      "direction": "ticket_comments -> tickets",
-      "verified": true
-    },
-    {
-      "id": "ticket_comments_users",
-      "from": "ticket_comments",
-      "from_col": "created_by",
-      "to": "users",
-      "to_col": "id",
-      "description": "Comment author",
-      "direction": "ticket_comments -> users",
-      "verified": true
-    },
-    {
-      "id": "shift_logs_users",
-      "from": "shift_logs",
-      "from_col": "user_id",
-      "to": "users",
-      "to_col": "id",
-      "description": "Shift log for a user",
-      "direction": "shift_logs -> users",
-      "verified": true
-    },
-    {
-      "id": "shift_logs_properties",
-      "from": "shift_logs",
-      "from_col": "property_id",
-      "to": "properties",
-      "to_col": "id",
-      "description": "Shift log at a property",
-      "direction": "shift_logs -> properties",
-      "verified": true
-    },
-    {
-      "id": "mst_daily_scores_users",
-      "from": "mst_daily_scores",
-      "from_col": "user_id",
-      "to": "users",
-      "to_col": "id",
-      "description": "Daily MST score for a user",
-      "direction": "mst_daily_scores -> users",
-      "verified": true
-    },
-    {
-      "id": "mst_daily_scores_properties",
-      "from": "mst_daily_scores",
-      "from_col": "property_id",
-      "to": "properties",
-      "to_col": "id",
-      "description": "Daily MST score at a property",
-      "direction": "mst_daily_scores -> properties",
-      "verified": true
-    },
-    {
-      "id": "stock_items_properties",
-      "from": "stock_items",
-      "from_col": "property_id",
-      "to": "properties",
-      "to_col": "id",
-      "description": "Inventory at a property",
-      "direction": "stock_items -> properties",
-      "verified": true
-    },
-    {
-      "id": "meeting_room_bookings_rooms",
-      "from": "meeting_room_bookings",
-      "from_col": "room_id",
-      "to": "meeting_rooms",
-      "to_col": "id",
-      "description": "Booking for a meeting room",
-      "direction": "meeting_room_bookings -> meeting_rooms",
-      "verified": true
-    },
-    {
-      "id": "meeting_room_bookings_users",
-      "from": "meeting_room_bookings",
-      "from_col": "booked_by",
-      "to": "users",
-      "to_col": "id",
-      "description": "User who booked the room",
-      "direction": "meeting_room_bookings -> users",
-      "verified": true
-    },
-    {
-      "id": "procurement_orders_properties",
-      "from": "procurement_orders",
-      "from_col": "property_id",
-      "to": "properties",
-      "to_col": "id",
-      "description": "Purchase order for a property",
-      "direction": "procurement_orders -> properties",
-      "verified": true
-    },
-    {
-      "id": "vendor_payments_vendors",
+      "id": "vendor_payments_vendor_id",
       "from": "vendor_payments",
       "from_col": "vendor_id",
       "to": "vendors",
       "to_col": "id",
-      "description": "Payment to a vendor",
+      "description": "Payment to vendor",
       "direction": "vendor_payments -> vendors",
       "verified": true
     },
     {
-      "id": "notifications_users",
+      "id": "vendor_payments_organization_id",
+      "from": "vendor_payments",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Payment org",
+      "direction": "vendor_payments -> organizations",
+      "verified": true
+    },
+    {
+      "id": "vendor_payments_cycle_id",
+      "from": "vendor_payments",
+      "from_col": "cycle_id",
+      "to": "commission_cycles",
+      "to_col": "id",
+      "description": "Payment for commission cycle",
+      "direction": "vendor_payments -> commission_cycles",
+      "verified": true
+    },
+    {
+      "id": "vendor_property_assignments_vendor_id",
+      "from": "vendor_property_assignments",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "Vendor assigned to property",
+      "direction": "vendor_property_assignments -> vendors",
+      "verified": true
+    },
+    {
+      "id": "vendor_property_assignments_property_id",
+      "from": "vendor_property_assignments",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Property assignment",
+      "direction": "vendor_property_assignments -> properties",
+      "verified": true
+    },
+    {
+      "id": "amc_contracts_vendor_id",
+      "from": "amc_contracts",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "AMC contract with vendor",
+      "direction": "amc_contracts -> vendors",
+      "verified": true
+    },
+    {
+      "id": "amc_contracts_property_id",
+      "from": "amc_contracts",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "AMC contract at property",
+      "direction": "amc_contracts -> properties",
+      "verified": true
+    },
+    {
+      "id": "amc_contracts_organization_id",
+      "from": "amc_contracts",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "AMC contract org",
+      "direction": "amc_contracts -> organizations",
+      "verified": true
+    },
+    {
+      "id": "commission_cycles_vendor_id",
+      "from": "commission_cycles",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "Commission cycle for vendor",
+      "direction": "commission_cycles -> vendors",
+      "verified": true
+    },
+    {
+      "id": "commission_cycles_property_id",
+      "from": "commission_cycles",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Commission cycle at property",
+      "direction": "commission_cycles -> properties",
+      "verified": true
+    },
+    {
+      "id": "commission_cycles_organization_id",
+      "from": "commission_cycles",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Commission cycle org",
+      "direction": "commission_cycles -> organizations",
+      "verified": true
+    },
+    {
+      "id": "payment_transactions_vendor_id",
+      "from": "payment_transactions",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "Transaction for vendor",
+      "direction": "payment_transactions -> vendors",
+      "verified": true
+    },
+    {
+      "id": "payment_transactions_property_id",
+      "from": "payment_transactions",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Transaction at property",
+      "direction": "payment_transactions -> properties",
+      "verified": true
+    },
+    {
+      "id": "payment_transactions_commission_cycle_id",
+      "from": "payment_transactions",
+      "from_col": "commission_cycle_id",
+      "to": "commission_cycles",
+      "to_col": "id",
+      "description": "Transaction for cycle",
+      "direction": "payment_transactions -> commission_cycles",
+      "verified": true
+    },
+    {
+      "id": "maintenance_vendors_organization_id",
+      "from": "maintenance_vendors",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Maintenance vendor org",
+      "direction": "maintenance_vendors -> organizations",
+      "verified": true
+    },
+    {
+      "id": "maintenance_vendors_user_id",
+      "from": "maintenance_vendors",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Maintenance vendor user",
+      "direction": "maintenance_vendors -> users",
+      "verified": true
+    },
+    {
+      "id": "ppm_schedules_vendor_id",
+      "from": "ppm_schedules",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "PPM schedule with vendor",
+      "direction": "ppm_schedules -> vendors",
+      "verified": true
+    },
+    {
+      "id": "ppm_schedules_organization_id",
+      "from": "ppm_schedules",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "PPM schedule org",
+      "direction": "ppm_schedules -> organizations",
+      "verified": true
+    },
+    {
+      "id": "ppm_schedules_property_id",
+      "from": "ppm_schedules",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "PPM schedule at property",
+      "direction": "ppm_schedules -> properties",
+      "verified": true
+    },
+    {
+      "id": "mst_workload_user_id",
+      "from": "mst_workload",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Workload for user",
+      "direction": "mst_workload -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_workload_property_id",
+      "from": "mst_workload",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Workload at property",
+      "direction": "mst_workload -> properties",
+      "verified": true
+    },
+    {
+      "id": "mst_daily_scores_user_id",
+      "from": "mst_daily_scores",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Daily score for user",
+      "direction": "mst_daily_scores -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_daily_scores_property_id",
+      "from": "mst_daily_scores",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Daily score at property",
+      "direction": "mst_daily_scores -> properties",
+      "verified": true
+    },
+    {
+      "id": "mst_streaks_user_id",
+      "from": "mst_streaks",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Streak for user",
+      "direction": "mst_streaks -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_streaks_property_id",
+      "from": "mst_streaks",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Streak at property",
+      "direction": "mst_streaks -> properties",
+      "verified": true
+    },
+    {
+      "id": "mst_skills_user_id",
+      "from": "mst_skills",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Skill for user",
+      "direction": "mst_skills -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_point_transactions_user_id",
+      "from": "mst_point_transactions",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Points for user",
+      "direction": "mst_point_transactions -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_point_transactions_property_id",
+      "from": "mst_point_transactions",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Points at property",
+      "direction": "mst_point_transactions -> properties",
+      "verified": true
+    },
+    {
+      "id": "mst_point_transactions_source_ticket_id",
+      "from": "mst_point_transactions",
+      "from_col": "source_ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Points from ticket",
+      "direction": "mst_point_transactions -> tickets",
+      "verified": true
+    },
+    {
+      "id": "mst_user_badges_user_id",
+      "from": "mst_user_badges",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Badge for user",
+      "direction": "mst_user_badges -> users",
+      "verified": true
+    },
+    {
+      "id": "mst_user_badges_achievement_id",
+      "from": "mst_user_badges",
+      "from_col": "achievement_id",
+      "to": "mst_achievements",
+      "to_col": "id",
+      "description": "Badge achievement",
+      "direction": "mst_user_badges -> mst_achievements",
+      "verified": true
+    },
+    {
+      "id": "user_achievements_user_id",
+      "from": "user_achievements",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Achievement for user",
+      "direction": "user_achievements -> users",
+      "verified": true
+    },
+    {
+      "id": "user_achievements_property_id",
+      "from": "user_achievements",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Achievement at property",
+      "direction": "user_achievements -> properties",
+      "verified": true
+    },
+    {
+      "id": "user_achievements_achievement_id",
+      "from": "user_achievements",
+      "from_col": "achievement_id",
+      "to": "mst_achievements",
+      "to_col": "id",
+      "description": "Achievement type",
+      "direction": "user_achievements -> mst_achievements",
+      "verified": true
+    },
+    {
+      "id": "resolver_stats_user_id",
+      "from": "resolver_stats",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Resolver stats for user",
+      "direction": "resolver_stats -> users",
+      "verified": true
+    },
+    {
+      "id": "resolver_stats_property_id",
+      "from": "resolver_stats",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Resolver stats at property",
+      "direction": "resolver_stats -> properties",
+      "verified": true
+    },
+    {
+      "id": "resolver_stats_skill_group_id",
+      "from": "resolver_stats",
+      "from_col": "skill_group_id",
+      "to": "skill_groups",
+      "to_col": "id",
+      "description": "Resolver skill group",
+      "direction": "resolver_stats -> skill_groups",
+      "verified": true
+    },
+    {
+      "id": "shift_logs_user_id",
+      "from": "shift_logs",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Shift log for user",
+      "direction": "shift_logs -> users",
+      "verified": true
+    },
+    {
+      "id": "shift_logs_property_id",
+      "from": "shift_logs",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Shift log at property",
+      "direction": "shift_logs -> properties",
+      "verified": true
+    },
+    {
+      "id": "ticket_comments_ticket_id",
+      "from": "ticket_comments",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Comment on ticket",
+      "direction": "ticket_comments -> tickets",
+      "verified": true
+    },
+    {
+      "id": "ticket_comments_user_id",
+      "from": "ticket_comments",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Comment by user",
+      "direction": "ticket_comments -> users",
+      "verified": true
+    },
+    {
+      "id": "ticket_activity_log_ticket_id",
+      "from": "ticket_activity_log",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Activity on ticket",
+      "direction": "ticket_activity_log -> tickets",
+      "verified": true
+    },
+    {
+      "id": "ticket_activity_log_user_id",
+      "from": "ticket_activity_log",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Activity by user",
+      "direction": "ticket_activity_log -> users",
+      "verified": true
+    },
+    {
+      "id": "ticket_classification_logs_ticket_id",
+      "from": "ticket_classification_logs",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Classification for ticket",
+      "direction": "ticket_classification_logs -> tickets",
+      "verified": true
+    },
+    {
+      "id": "ticket_escalation_logs_ticket_id",
+      "from": "ticket_escalation_logs",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Escalation for ticket",
+      "direction": "ticket_escalation_logs -> tickets",
+      "verified": true
+    },
+    {
+      "id": "ticket_escalation_logs_hierarchy_id",
+      "from": "ticket_escalation_logs",
+      "from_col": "hierarchy_id",
+      "to": "escalation_hierarchies",
+      "to_col": "id",
+      "description": "Escalation hierarchy",
+      "direction": "ticket_escalation_logs -> escalation_hierarchies",
+      "verified": true
+    },
+    {
+      "id": "ticket_escalation_logs_from_employee_id",
+      "from": "ticket_escalation_logs",
+      "from_col": "from_employee_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Escalated from user",
+      "direction": "ticket_escalation_logs -> users",
+      "verified": true
+    },
+    {
+      "id": "ticket_escalation_logs_to_employee_id",
+      "from": "ticket_escalation_logs",
+      "from_col": "to_employee_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Escalated to user",
+      "direction": "ticket_escalation_logs -> users",
+      "verified": true
+    },
+    {
+      "id": "ticket_counters_property_id",
+      "from": "ticket_counters",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Counter at property",
+      "direction": "ticket_counters -> properties",
+      "verified": true
+    },
+    {
+      "id": "ticket_sequences_property_id",
+      "from": "ticket_sequences",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Sequence at property",
+      "direction": "ticket_sequences -> properties",
+      "verified": true
+    },
+    {
+      "id": "escalation_hierarchies_organization_id",
+      "from": "escalation_hierarchies",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Hierarchy org",
+      "direction": "escalation_hierarchies -> organizations",
+      "verified": true
+    },
+    {
+      "id": "escalation_hierarchies_property_id",
+      "from": "escalation_hierarchies",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Hierarchy at property",
+      "direction": "escalation_hierarchies -> properties",
+      "verified": true
+    },
+    {
+      "id": "escalation_levels_hierarchy_id",
+      "from": "escalation_levels",
+      "from_col": "hierarchy_id",
+      "to": "escalation_hierarchies",
+      "to_col": "id",
+      "description": "Level in hierarchy",
+      "direction": "escalation_levels -> escalation_hierarchies",
+      "verified": true
+    },
+    {
+      "id": "escalation_levels_employee_id",
+      "from": "escalation_levels",
+      "from_col": "employee_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Escalation level employee",
+      "direction": "escalation_levels -> users",
+      "verified": true
+    },
+    {
+      "id": "issue_categories_property_id",
+      "from": "issue_categories",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Category at property",
+      "direction": "issue_categories -> properties",
+      "verified": true
+    },
+    {
+      "id": "issue_categories_skill_group_id",
+      "from": "issue_categories",
+      "from_col": "skill_group_id",
+      "to": "skill_groups",
+      "to_col": "id",
+      "description": "Category requires skill group",
+      "direction": "issue_categories -> skill_groups",
+      "verified": true
+    },
+    {
+      "id": "skill_groups_property_id",
+      "from": "skill_groups",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Skill group at property",
+      "direction": "skill_groups -> properties",
+      "verified": true
+    },
+    {
+      "id": "sla_templates_organization_id",
+      "from": "sla_templates",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "SLA template org",
+      "direction": "sla_templates -> organizations",
+      "verified": true
+    },
+    {
+      "id": "sla_templates_property_id",
+      "from": "sla_templates",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "SLA template at property",
+      "direction": "sla_templates -> properties",
+      "verified": true
+    },
+    {
+      "id": "sop_templates_organization_id",
+      "from": "sop_templates",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "SOP template org",
+      "direction": "sop_templates -> organizations",
+      "verified": true
+    },
+    {
+      "id": "sop_templates_property_id",
+      "from": "sop_templates",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "SOP template at property",
+      "direction": "sop_templates -> properties",
+      "verified": true
+    },
+    {
+      "id": "sop_templates_assigned_to",
+      "from": "sop_templates",
+      "from_col": "assigned_to",
+      "to": "users",
+      "to_col": "id",
+      "description": "SOP assigned to user",
+      "direction": "sop_templates -> users",
+      "verified": true
+    },
+    {
+      "id": "sop_checklist_items_template_id",
+      "from": "sop_checklist_items",
+      "from_col": "template_id",
+      "to": "sop_templates",
+      "to_col": "id",
+      "description": "Checklist item in template",
+      "direction": "sop_checklist_items -> sop_templates",
+      "verified": true
+    },
+    {
+      "id": "sop_completions_organization_id",
+      "from": "sop_completions",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Completion org",
+      "direction": "sop_completions -> organizations",
+      "verified": true
+    },
+    {
+      "id": "sop_completions_property_id",
+      "from": "sop_completions",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Completion at property",
+      "direction": "sop_completions -> properties",
+      "verified": true
+    },
+    {
+      "id": "sop_completions_template_id",
+      "from": "sop_completions",
+      "from_col": "template_id",
+      "to": "sop_templates",
+      "to_col": "id",
+      "description": "Completion of template",
+      "direction": "sop_completions -> sop_templates",
+      "verified": true
+    },
+    {
+      "id": "sop_completion_items_completion_id",
+      "from": "sop_completion_items",
+      "from_col": "completion_id",
+      "to": "sop_completions",
+      "to_col": "id",
+      "description": "Item in completion",
+      "direction": "sop_completion_items -> sop_completions",
+      "verified": true
+    },
+    {
+      "id": "sop_completion_items_checklist_item_id",
+      "from": "sop_completion_items",
+      "from_col": "checklist_item_id",
+      "to": "sop_checklist_items",
+      "to_col": "id",
+      "description": "Completed checklist item",
+      "direction": "sop_completion_items -> sop_checklist_items",
+      "verified": true
+    },
+    {
+      "id": "meeting_rooms_property_id",
+      "from": "meeting_rooms",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Room at property",
+      "direction": "meeting_rooms -> properties",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_meeting_room_id",
+      "from": "meeting_room_bookings",
+      "from_col": "meeting_room_id",
+      "to": "meeting_rooms",
+      "to_col": "id",
+      "description": "Booking for room",
+      "direction": "meeting_room_bookings -> meeting_rooms",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_user_id",
+      "from": "meeting_room_bookings",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Booking by user",
+      "direction": "meeting_room_bookings -> users",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_organization_id",
+      "from": "meeting_room_bookings",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Booking org",
+      "direction": "meeting_room_bookings -> organizations",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_property_id",
+      "from": "meeting_room_bookings",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Booking at property",
+      "direction": "meeting_room_bookings -> properties",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_bookings_company_id",
+      "from": "meeting_room_bookings",
+      "from_col": "company_id",
+      "to": "companies",
+      "to_col": "id",
+      "description": "Booking by company",
+      "direction": "meeting_room_bookings -> companies",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credits_organization_id",
+      "from": "meeting_room_credits",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Credits org",
+      "direction": "meeting_room_credits -> organizations",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credits_property_id",
+      "from": "meeting_room_credits",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Credits at property",
+      "direction": "meeting_room_credits -> properties",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credits_company_id",
+      "from": "meeting_room_credits",
+      "from_col": "company_id",
+      "to": "companies",
+      "to_col": "id",
+      "description": "Credits for company",
+      "direction": "meeting_room_credits -> companies",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credits_user_id",
+      "from": "meeting_room_credits",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Credits for user",
+      "direction": "meeting_room_credits -> users",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credit_log_organization_id",
+      "from": "meeting_room_credit_log",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Credit log org",
+      "direction": "meeting_room_credit_log -> organizations",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credit_log_booking_id",
+      "from": "meeting_room_credit_log",
+      "from_col": "booking_id",
+      "to": "meeting_room_bookings",
+      "to_col": "id",
+      "description": "Credit log for booking",
+      "direction": "meeting_room_credit_log -> meeting_room_bookings",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credit_log_company_id",
+      "from": "meeting_room_credit_log",
+      "from_col": "company_id",
+      "to": "companies",
+      "to_col": "id",
+      "description": "Credit log for company",
+      "direction": "meeting_room_credit_log -> companies",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credit_log_user_id",
+      "from": "meeting_room_credit_log",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Credit log by user",
+      "direction": "meeting_room_credit_log -> users",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credit_requests_property_id",
+      "from": "meeting_room_credit_requests",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Credit request at property",
+      "direction": "meeting_room_credit_requests -> properties",
+      "verified": true
+    },
+    {
+      "id": "meeting_room_credit_requests_user_id",
+      "from": "meeting_room_credit_requests",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Credit request by user",
+      "direction": "meeting_room_credit_requests -> users",
+      "verified": true
+    },
+    {
+      "id": "companies_organization_id",
+      "from": "companies",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Company org",
+      "direction": "companies -> organizations",
+      "verified": true
+    },
+    {
+      "id": "companies_property_id",
+      "from": "companies",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Company at property",
+      "direction": "companies -> properties",
+      "verified": true
+    },
+    {
+      "id": "company_members_company_id",
+      "from": "company_members",
+      "from_col": "company_id",
+      "to": "companies",
+      "to_col": "id",
+      "description": "Member of company",
+      "direction": "company_members -> companies",
+      "verified": true
+    },
+    {
+      "id": "company_members_organization_id",
+      "from": "company_members",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Company member org",
+      "direction": "company_members -> organizations",
+      "verified": true
+    },
+    {
+      "id": "company_members_user_id",
+      "from": "company_members",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Company member user",
+      "direction": "company_members -> users",
+      "verified": true
+    },
+    {
+      "id": "procurement_orders_organization_id",
+      "from": "procurement_orders",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "PO org",
+      "direction": "procurement_orders -> organizations",
+      "verified": true
+    },
+    {
+      "id": "procurement_orders_property_id",
+      "from": "procurement_orders",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "PO at property",
+      "direction": "procurement_orders -> properties",
+      "verified": true
+    },
+    {
+      "id": "procurement_orders_material_request_id",
+      "from": "procurement_orders",
+      "from_col": "material_request_id",
+      "to": "material_requests",
+      "to_col": "id",
+      "description": "PO for material request",
+      "direction": "procurement_orders -> material_requests",
+      "verified": true
+    },
+    {
+      "id": "procurement_activity_log_procurement_order_id",
+      "from": "procurement_activity_log",
+      "from_col": "procurement_order_id",
+      "to": "procurement_orders",
+      "to_col": "id",
+      "description": "Activity for PO",
+      "direction": "procurement_activity_log -> procurement_orders",
+      "verified": true
+    },
+    {
+      "id": "procurement_activity_log_material_request_id",
+      "from": "procurement_activity_log",
+      "from_col": "material_request_id",
+      "to": "material_requests",
+      "to_col": "id",
+      "description": "Activity for MR",
+      "direction": "procurement_activity_log -> material_requests",
+      "verified": true
+    },
+    {
+      "id": "procurement_activity_log_user_id",
+      "from": "procurement_activity_log",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Activity by user",
+      "direction": "procurement_activity_log -> users",
+      "verified": true
+    },
+    {
+      "id": "procurement_budgets_organization_id",
+      "from": "procurement_budgets",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Budget org",
+      "direction": "procurement_budgets -> organizations",
+      "verified": true
+    },
+    {
+      "id": "procurement_budgets_property_id",
+      "from": "procurement_budgets",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Budget at property",
+      "direction": "procurement_budgets -> properties",
+      "verified": true
+    },
+    {
+      "id": "procurement_catalog_organization_id",
+      "from": "procurement_catalog",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Catalog item org",
+      "direction": "procurement_catalog -> organizations",
+      "verified": true
+    },
+    {
+      "id": "procurement_catalog_stock_item_id",
+      "from": "procurement_catalog",
+      "from_col": "stock_item_id",
+      "to": "stock_items",
+      "to_col": "id",
+      "description": "Catalog stock item",
+      "direction": "procurement_catalog -> stock_items",
+      "verified": true
+    },
+    {
+      "id": "procurement_settings_organization_id",
+      "from": "procurement_settings",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Settings org",
+      "direction": "procurement_settings -> organizations",
+      "verified": true
+    },
+    {
+      "id": "procurement_settings_property_id",
+      "from": "procurement_settings",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Settings at property",
+      "direction": "procurement_settings -> properties",
+      "verified": true
+    },
+    {
+      "id": "procurement_settings_high_approver_id",
+      "from": "procurement_settings",
+      "from_col": "high_approver_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "High value approver",
+      "direction": "procurement_settings -> users",
+      "verified": true
+    },
+    {
+      "id": "procurement_settings_low_approver_id",
+      "from": "procurement_settings",
+      "from_col": "low_approver_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Low value approver",
+      "direction": "procurement_settings -> users",
+      "verified": true
+    },
+    {
+      "id": "material_requests_organization_id",
+      "from": "material_requests",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "MR org",
+      "direction": "material_requests -> organizations",
+      "verified": true
+    },
+    {
+      "id": "material_requests_property_id",
+      "from": "material_requests",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "MR at property",
+      "direction": "material_requests -> properties",
+      "verified": true
+    },
+    {
+      "id": "material_requests_ticket_id",
+      "from": "material_requests",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "MR for ticket",
+      "direction": "material_requests -> tickets",
+      "verified": true
+    },
+    {
+      "id": "material_requests_target_approver_id",
+      "from": "material_requests",
+      "from_col": "target_approver_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "MR approver",
+      "direction": "material_requests -> users",
+      "verified": true
+    },
+    {
+      "id": "material_request_items_request_id",
+      "from": "material_request_items",
+      "from_col": "request_id",
+      "to": "material_requests",
+      "to_col": "id",
+      "description": "Item in MR",
+      "direction": "material_request_items -> material_requests",
+      "verified": true
+    },
+    {
+      "id": "material_request_items_organization_id",
+      "from": "material_request_items",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "MR item org",
+      "direction": "material_request_items -> organizations",
+      "verified": true
+    },
+    {
+      "id": "material_request_items_catalog_item_id",
+      "from": "material_request_items",
+      "from_col": "catalog_item_id",
+      "to": "procurement_catalog",
+      "to_col": "id",
+      "description": "MR item from catalog",
+      "direction": "material_request_items -> procurement_catalog",
+      "verified": true
+    },
+    {
+      "id": "stock_items_organization_id",
+      "from": "stock_items",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Stock item org",
+      "direction": "stock_items -> organizations",
+      "verified": true
+    },
+    {
+      "id": "stock_items_property_id",
+      "from": "stock_items",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Stock item at property",
+      "direction": "stock_items -> properties",
+      "verified": true
+    },
+    {
+      "id": "stock_movements_organization_id",
+      "from": "stock_movements",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Movement org",
+      "direction": "stock_movements -> organizations",
+      "verified": true
+    },
+    {
+      "id": "stock_movements_property_id",
+      "from": "stock_movements",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Movement at property",
+      "direction": "stock_movements -> properties",
+      "verified": true
+    },
+    {
+      "id": "stock_movements_item_id",
+      "from": "stock_movements",
+      "from_col": "item_id",
+      "to": "stock_items",
+      "to_col": "id",
+      "description": "Movement for item",
+      "direction": "stock_movements -> stock_items",
+      "verified": true
+    },
+    {
+      "id": "stock_movements_user_id",
+      "from": "stock_movements",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Movement by user",
+      "direction": "stock_movements -> users",
+      "verified": true
+    },
+    {
+      "id": "stock_reports_organization_id",
+      "from": "stock_reports",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Stock report org",
+      "direction": "stock_reports -> organizations",
+      "verified": true
+    },
+    {
+      "id": "stock_reports_property_id",
+      "from": "stock_reports",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Stock report at property",
+      "direction": "stock_reports -> properties",
+      "verified": true
+    },
+    {
+      "id": "notifications_organization_id",
+      "from": "notifications",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Notification org",
+      "direction": "notifications -> organizations",
+      "verified": true
+    },
+    {
+      "id": "notifications_property_id",
+      "from": "notifications",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Notification at property",
+      "direction": "notifications -> properties",
+      "verified": true
+    },
+    {
+      "id": "notifications_user_id",
       "from": "notifications",
       "from_col": "user_id",
       "to": "users",
       "to_col": "id",
-      "description": "Notification for a user",
+      "description": "Notification for user",
       "direction": "notifications -> users",
+      "verified": true
+    },
+    {
+      "id": "notifications_ticket_id",
+      "from": "notifications",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "Notification for ticket",
+      "direction": "notifications -> tickets",
+      "verified": true
+    },
+    {
+      "id": "notifications_booking_id",
+      "from": "notifications",
+      "from_col": "booking_id",
+      "to": "meeting_room_bookings",
+      "to_col": "id",
+      "description": "Notification for booking",
+      "direction": "notifications -> meeting_room_bookings",
+      "verified": true
+    },
+    {
+      "id": "notification_delivery_notification_id",
+      "from": "notification_delivery",
+      "from_col": "notification_id",
+      "to": "notifications",
+      "to_col": "id",
+      "description": "Delivery of notification",
+      "direction": "notification_delivery -> notifications",
+      "verified": true
+    },
+    {
+      "id": "push_tokens_user_id",
+      "from": "push_tokens",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Push token for user",
+      "direction": "push_tokens -> users",
+      "verified": true
+    },
+    {
+      "id": "push_tokens_property_id",
+      "from": "push_tokens",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Push token at property",
+      "direction": "push_tokens -> properties",
+      "verified": true
+    },
+    {
+      "id": "visitor_logs_organization_id",
+      "from": "visitor_logs",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Visitor log org",
+      "direction": "visitor_logs -> organizations",
+      "verified": true
+    },
+    {
+      "id": "visitor_logs_property_id",
+      "from": "visitor_logs",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Visitor log at property",
+      "direction": "visitor_logs -> properties",
+      "verified": true
+    },
+    {
+      "id": "vms_tickets_organization_id",
+      "from": "vms_tickets",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "VMS ticket org",
+      "direction": "vms_tickets -> organizations",
+      "verified": true
+    },
+    {
+      "id": "vms_tickets_property_id",
+      "from": "vms_tickets",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "VMS ticket at property",
+      "direction": "vms_tickets -> properties",
+      "verified": true
+    },
+    {
+      "id": "visitor_id_counters_property_id",
+      "from": "visitor_id_counters",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Counter at property",
+      "direction": "visitor_id_counters -> properties",
+      "verified": true
+    },
+    {
+      "id": "ppm_audit_reports_organization_id",
+      "from": "ppm_audit_reports",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Audit report org",
+      "direction": "ppm_audit_reports -> organizations",
+      "verified": true
+    },
+    {
+      "id": "ppm_audit_reports_property_id",
+      "from": "ppm_audit_reports",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Audit report at property",
+      "direction": "ppm_audit_reports -> properties",
+      "verified": true
+    },
+    {
+      "id": "ppm_audit_items_audit_report_id",
+      "from": "ppm_audit_items",
+      "from_col": "audit_report_id",
+      "to": "ppm_audit_reports",
+      "to_col": "id",
+      "description": "Item in audit report",
+      "direction": "ppm_audit_items -> ppm_audit_reports",
+      "verified": true
+    },
+    {
+      "id": "ppm_audit_items_ppm_item_id",
+      "from": "ppm_audit_items",
+      "from_col": "ppm_item_id",
+      "to": "ppm_schedules",
+      "to_col": "id",
+      "description": "Audit item for PPM schedule",
+      "direction": "ppm_audit_items -> ppm_schedules",
+      "verified": true
+    },
+    {
+      "id": "property_audit_submissions_organization_id",
+      "from": "property_audit_submissions",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Audit submission org",
+      "direction": "property_audit_submissions -> organizations",
+      "verified": true
+    },
+    {
+      "id": "property_audit_submissions_property_id",
+      "from": "property_audit_submissions",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Audit submission at property",
+      "direction": "property_audit_submissions -> properties",
+      "verified": true
+    },
+    {
+      "id": "property_audit_submissions_master_item_id",
+      "from": "property_audit_submissions",
+      "from_col": "master_item_id",
+      "to": "audit_master_items",
+      "to_col": "id",
+      "description": "Submission for master item",
+      "direction": "property_audit_submissions -> audit_master_items",
+      "verified": true
+    },
+    {
+      "id": "audit_master_items_organization_id",
+      "from": "audit_master_items",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Audit master item org",
+      "direction": "audit_master_items -> organizations",
+      "verified": true
+    },
+    {
+      "id": "audit_master_items_assigned_spoc_id",
+      "from": "audit_master_items",
+      "from_col": "assigned_spoc_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Audit SPOC user",
+      "direction": "audit_master_items -> users",
+      "verified": true
+    },
+    {
+      "id": "invite_links_organization_id",
+      "from": "invite_links",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Invite link org",
+      "direction": "invite_links -> organizations",
+      "verified": true
+    },
+    {
+      "id": "invite_links_property_id",
+      "from": "invite_links",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Invite link at property",
+      "direction": "invite_links -> properties",
+      "verified": true
+    },
+    {
+      "id": "invite_link_usage_invite_link_id",
+      "from": "invite_link_usage",
+      "from_col": "invite_link_id",
+      "to": "invite_links",
+      "to_col": "id",
+      "description": "Usage of invite link",
+      "direction": "invite_link_usage -> invite_links",
+      "verified": true
+    },
+    {
+      "id": "invite_link_usage_user_id",
+      "from": "invite_link_usage",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Invite link used by user",
+      "direction": "invite_link_usage -> users",
+      "verified": true
+    },
+    {
+      "id": "property_features_property_id",
+      "from": "property_features",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Feature for property",
+      "direction": "property_features -> properties",
+      "verified": true
+    },
+    {
+      "id": "property_activities_organization_id",
+      "from": "property_activities",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Activity org",
+      "direction": "property_activities -> organizations",
+      "verified": true
+    },
+    {
+      "id": "property_activities_property_id",
+      "from": "property_activities",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Activity at property",
+      "direction": "property_activities -> properties",
+      "verified": true
+    },
+    {
+      "id": "snag_imports_organization_id",
+      "from": "snag_imports",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Snag import org",
+      "direction": "snag_imports -> organizations",
+      "verified": true
+    },
+    {
+      "id": "snag_imports_property_id",
+      "from": "snag_imports",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Snag import at property",
+      "direction": "snag_imports -> properties",
+      "verified": true
+    },
+    {
+      "id": "super_tenant_properties_organization_id",
+      "from": "super_tenant_properties",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Super tenant org",
+      "direction": "super_tenant_properties -> organizations",
+      "verified": true
+    },
+    {
+      "id": "super_tenant_properties_property_id",
+      "from": "super_tenant_properties",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Super tenant at property",
+      "direction": "super_tenant_properties -> properties",
+      "verified": true
+    },
+    {
+      "id": "super_tenant_properties_user_id",
+      "from": "super_tenant_properties",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Super tenant user",
+      "direction": "super_tenant_properties -> users",
+      "verified": true
+    },
+    {
+      "id": "feature_usage_logs_organization_id",
+      "from": "feature_usage_logs",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Feature usage org",
+      "direction": "feature_usage_logs -> organizations",
+      "verified": true
+    },
+    {
+      "id": "feature_usage_logs_property_id",
+      "from": "feature_usage_logs",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Feature usage at property",
+      "direction": "feature_usage_logs -> properties",
+      "verified": true
+    },
+    {
+      "id": "feature_usage_logs_user_id",
+      "from": "feature_usage_logs",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Feature usage by user",
+      "direction": "feature_usage_logs -> users",
+      "verified": true
+    },
+    {
+      "id": "feature_usage_summary_organization_id",
+      "from": "feature_usage_summary",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Feature summary org",
+      "direction": "feature_usage_summary -> organizations",
+      "verified": true
+    },
+    {
+      "id": "user_engagement_metrics_user_id",
+      "from": "user_engagement_metrics",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "Engagement metrics user",
+      "direction": "user_engagement_metrics -> users",
+      "verified": true
+    },
+    {
+      "id": "user_status_summary_organization_id",
+      "from": "user_status_summary",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Status summary org",
+      "direction": "user_status_summary -> organizations",
+      "verified": true
+    },
+    {
+      "id": "module_usage_summary_organization_id",
+      "from": "module_usage_summary",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Module usage org",
+      "direction": "module_usage_summary -> organizations",
+      "verified": true
+    },
+    {
+      "id": "whatsapp_queue_ticket_id",
+      "from": "whatsapp_queue",
+      "from_col": "ticket_id",
+      "to": "tickets",
+      "to_col": "id",
+      "description": "WhatsApp message for ticket",
+      "direction": "whatsapp_queue -> tickets",
+      "verified": true
+    },
+    {
+      "id": "whatsapp_queue_user_id",
+      "from": "whatsapp_queue",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "WhatsApp message to user",
+      "direction": "whatsapp_queue -> users",
+      "verified": true
+    },
+    {
+      "id": "whatsapp_sessions_user_id",
+      "from": "whatsapp_sessions",
+      "from_col": "user_id",
+      "to": "users",
+      "to_col": "id",
+      "description": "WhatsApp session for user",
+      "direction": "whatsapp_sessions -> users",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_audit_log_organization_id",
+      "from": "zoho_po_audit_log",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Zoho audit org",
+      "direction": "zoho_po_audit_log -> organizations",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_audit_log_property_id",
+      "from": "zoho_po_audit_log",
+      "from_col": "property_id",
+      "to": "properties",
+      "to_col": "id",
+      "description": "Zoho audit at property",
+      "direction": "zoho_po_audit_log -> properties",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_audit_log_vendor_id",
+      "from": "zoho_po_audit_log",
+      "from_col": "vendor_id",
+      "to": "vendors",
+      "to_col": "id",
+      "description": "Zoho audit for vendor",
+      "direction": "zoho_po_audit_log -> vendors",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_audit_log_po_id",
+      "from": "zoho_po_audit_log",
+      "from_col": "po_id",
+      "to": "procurement_orders",
+      "to_col": "id",
+      "description": "Zoho audit for PO",
+      "direction": "zoho_po_audit_log -> procurement_orders",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_entity_master_organization_id",
+      "from": "zoho_po_entity_master",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Zoho entity org",
+      "direction": "zoho_po_entity_master -> organizations",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_settings_organization_id",
+      "from": "zoho_po_settings",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Zoho settings org",
+      "direction": "zoho_po_settings -> organizations",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_tokens_organization_id",
+      "from": "zoho_po_tokens",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Zoho tokens org",
+      "direction": "zoho_po_tokens -> organizations",
+      "verified": true
+    },
+    {
+      "id": "zoho_po_vendor_cache_organization_id",
+      "from": "zoho_po_vendor_cache",
+      "from_col": "organization_id",
+      "to": "organizations",
+      "to_col": "id",
+      "description": "Zoho vendor cache org",
+      "direction": "zoho_po_vendor_cache -> organizations",
       "verified": true
     }
   ],
   "table_aliases": {
-    "tickets": ["issues", "complaints", "requests", "maintenance", "problems"],
-    "users": ["staff", "engineers", "technicians", "mst", "assignee", "resolver"],
-    "properties": ["buildings", "sites", "locations", "facilities", "property"],
-    "organizations": ["org", "company", "tenant"],
-    "electricity_readings": ["energy", "electricity", "power", "kwh", "units", "consumption"],
-    "mst_workload": ["workload", "tasks", "assignments"],
-    "resolver_stats": ["performance", "stats", "metrics"],
-    "issue_categories": ["categories", "types", "category"],
-    "meeting_rooms": ["rooms", "meeting"],
-    "procurement_orders": ["orders", "purchases", "po"],
-    "vendors": ["suppliers", "contractors"],
-    "ticket_comments": ["comments", "replies", "notes"]
+    "tickets": [
+      "issues",
+      "complaints",
+      "requests",
+      "maintenance",
+      "problems",
+      "work orders"
+    ],
+    "users": [
+      "staff",
+      "engineers",
+      "technicians",
+      "mst",
+      "assignee",
+      "resolver",
+      "employees",
+      "people"
+    ],
+    "properties": [
+      "buildings",
+      "sites",
+      "locations",
+      "facilities",
+      "property",
+      "premise",
+      "premises"
+    ],
+    "organizations": [
+      "org",
+      "company",
+      "tenant",
+      "client"
+    ],
+    "electricity_readings": [
+      "energy",
+      "electricity",
+      "power",
+      "kwh",
+      "units",
+      "consumption",
+      "readings"
+    ],
+    "electricity_meters": [
+      "meters",
+      "meter"
+    ],
+    "mst_workload": [
+      "workload",
+      "tasks",
+      "assignments",
+      "work"
+    ],
+    "resolver_stats": [
+      "performance",
+      "stats",
+      "metrics",
+      "kpi"
+    ],
+    "issue_categories": [
+      "categories",
+      "types",
+      "category"
+    ],
+    "meeting_rooms": [
+      "rooms",
+      "meeting room",
+      "conference room"
+    ],
+    "meeting_room_bookings": [
+      "bookings",
+      "reservations",
+      "room bookings"
+    ],
+    "procurement_orders": [
+      "orders",
+      "purchases",
+      "po",
+      "purchase orders"
+    ],
+    "material_requests": [
+      "material requests",
+      "mr",
+      "requisitions"
+    ],
+    "vendors": [
+      "suppliers",
+      "contractors",
+      "cafeteria vendors",
+      "cafeteria",
+      "service providers"
+    ],
+    "vendor_daily_revenue": [
+      "revenue",
+      "daily revenue",
+      "vendor revenue",
+      "cafeteria revenue",
+      "sales"
+    ],
+    "ticket_comments": [
+      "comments",
+      "replies",
+      "notes",
+      "feedback"
+    ],
+    "shift_logs": [
+      "shifts",
+      "shift records",
+      "attendance"
+    ],
+    "sop_templates": [
+      "sop",
+      "standard operating procedure",
+      "checklist template"
+    ],
+    "sop_completions": [
+      "sop completions",
+      "checklist completions",
+      "completed sop"
+    ],
+    "stock_items": [
+      "inventory",
+      "stock",
+      "items",
+      "materials"
+    ],
+    "stock_movements": [
+      "stock movements",
+      "inventory movements",
+      "stock in",
+      "stock out"
+    ],
+    "amc_contracts": [
+      "amc",
+      "annual maintenance",
+      "contracts",
+      "service contracts"
+    ],
+    "commission_cycles": [
+      "commissions",
+      "commission cycles"
+    ],
+    "ppm_schedules": [
+      "ppm",
+      "planned preventive maintenance",
+      "preventive maintenance"
+    ],
+    "visitor_logs": [
+      "visitors",
+      "visitor records",
+      "guest log"
+    ],
+    "generators": [
+      "dg",
+      "generator",
+      "diesel generator",
+      "genset"
+    ],
+    "diesel_readings": [
+      "diesel",
+      "dg readings",
+      "generator readings",
+      "fuel"
+    ],
+    "mst_daily_scores": [
+      "scores",
+      "daily scores",
+      "performance scores"
+    ],
+    "mst_streaks": [
+      "streaks",
+      "performance streaks"
+    ],
+    "escalation_hierarchies": [
+      "escalation",
+      "escalation hierarchy"
+    ],
+    "notifications": [
+      "alerts",
+      "notification"
+    ],
+    "push_tokens": [
+      "push notifications",
+      "device tokens"
+    ]
   },
   "text_to_uuid_columns": {
     "property_name": {
@@ -294,28 +2296,6 @@
       "filter_op": "ilike"
     }
   },
-  "common_queries": {
-    "tickets_with_property": {
-      "description": "Get tickets with property names",
-      "requires_join": ["tickets", "properties"],
-      "join_fk": "tickets.property_id = properties.id"
-    },
-    "tickets_with_assignee": {
-      "description": "Get tickets with assignee names",
-      "requires_join": ["tickets", "users"],
-      "join_fk": "tickets.assigned_to = users.id"
-    },
-    "energy_by_property": {
-      "description": "Get energy readings with property names",
-      "requires_join": ["electricity_readings", "properties"],
-      "join_fk": "electricity_readings.property_id = properties.id"
-    },
-    "mst_with_users": {
-      "description": "Get MST workload with user names",
-      "requires_join": ["mst_workload", "users"],
-      "join_fk": "mst_workload.user_id = users.id"
-    }
-  },
   "column_renames": {
     "_comment": "Common LLM mistakes -> correct column names",
     "tickets.created_by": "tickets.raised_by",
@@ -323,5 +2303,39 @@
     "tickets.category": "tickets.category_id",
     "tickets.status.satisfied": "NOT VALID - use resolved or closed",
     "tickets.status.paused": "NOT VALID - use in_progress"
+  },
+  "common_queries": {
+    "tickets_with_property": {
+      "description": "Get tickets with property names",
+      "requires_join": [
+        "tickets",
+        "properties"
+      ],
+      "join_fk": "tickets.property_id = properties.id"
+    },
+    "tickets_with_assignee": {
+      "description": "Get tickets with assignee names",
+      "requires_join": [
+        "tickets",
+        "users"
+      ],
+      "join_fk": "tickets.assigned_to = users.id"
+    },
+    "energy_by_property": {
+      "description": "Get energy readings with property names",
+      "requires_join": [
+        "electricity_readings",
+        "properties"
+      ],
+      "join_fk": "electricity_readings.property_id = properties.id"
+    },
+    "mst_with_users": {
+      "description": "Get MST workload with user names",
+      "requires_join": [
+        "mst_workload",
+        "users"
+      ],
+      "join_fk": "mst_workload.user_id = users.id"
+    }
   }
 }

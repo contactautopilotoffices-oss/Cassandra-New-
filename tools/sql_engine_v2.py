@@ -159,34 +159,50 @@ class SQLEngineV2:
             "Accept": "application/json",
         }
 
-        params = {}
+        params: dict = {}
 
-        # Handle WHERE clause
+        # Always select all columns — aggregations computed Python-side
+        params["select"] = "*"
+
+        # Auto-inject organization_id scope (safety guard — never return cross-org data)
+        org_id = context.get("org_id", "")
+        if org_id:
+            params["organization_id"] = f"eq.{org_id}"
+
+        # Handle WHERE clause (date filters, status, property_id, etc.)
         where = parsed.get("where", "")
         if where:
             params.update(self._parse_where_to_params(where, context))
 
-        # Handle aggregations
-        if "COUNT" in query.upper():
-            params["select"] = "id,count"
-        elif "SUM" in query.upper():
-            params["select"] = "id"
-        else:
-            params["select"] = "*"
-
-        # Handle LIMIT
+        # Handle LIMIT — cap at 500 to avoid OOM on large tables
         limit_match = re.search(r'LIMIT\s+(\d+)', query, re.IGNORECASE)
         if limit_match:
-            params["limit"] = limit_match.group(1)
+            params["limit"] = min(int(limit_match.group(1)), 500)
+        else:
+            params["limit"] = "500"
 
         try:
             resp = await self._http_client.get(url, headers=headers, params=params)
+            if not resp.is_success:
+                # Some tables don't have organization_id — retry without it
+                if resp.status_code in (400, 404) and "organization_id" in params:
+                    del params["organization_id"]
+                    resp = await self._http_client.get(url, headers=headers, params=params)
             resp.raise_for_status()
             data = resp.json()
 
-            # Compute aggregations in Python if needed
+            # Compute aggregations in Python
             if "COUNT" in query.upper():
                 data = self._compute_count(data, query)
+            elif "SUM" in query.upper():
+                data = self._compute_sum(data, query)
+            elif "DISTINCT" in query.upper():
+                # Count distinct vendor_ids, user_ids, etc.
+                distinct_match = re.search(r'DISTINCT\s+(\w+)', query, re.IGNORECASE)
+                if distinct_match:
+                    col = distinct_match.group(1)
+                    unique_vals = list({row.get(col) for row in data if row.get(col)})
+                    data = [{"distinct_count": len(unique_vals), "column": col, "values": unique_vals[:50]}]
 
             return ToolResult(
                 call_id=f"v2_single_{time.time():.0f}",
@@ -389,7 +405,11 @@ class SQLEngineV2:
     def _parse_where_to_params(
         self, where: str, context: dict[str, Any]
     ) -> dict[str, str]:
-        """Convert simplified WHERE to PostgREST params."""
+        """Convert simplified WHERE clauses to PostgREST query params.
+
+        Handles: property_id, organization_id, status, date columns, vendor_id, user_id.
+        """
+        from datetime import date, timedelta
         params: dict[str, str] = {}
 
         # property_id filter
@@ -409,11 +429,44 @@ class SQLEngineV2:
         if status_match:
             params["status"] = f"eq.{status_match.group(1)}"
 
+        # ── Date / time range filters ─────────────────────────────────────────
+        # Detect which date column is referenced (revenue_date, entry_date, created_at, etc.)
+        date_col_match = re.search(
+            r'\b(revenue_date|entry_date|created_at|updated_at|planned_date|done_date|date)\b',
+            where, re.IGNORECASE
+        )
+        date_col = date_col_match.group(1) if date_col_match else "created_at"
+
+        today = date.today()
+
+        # "CURRENT_DATE - INTERVAL '1 day'" / "yesterday" patterns
+        if re.search(r"INTERVAL\s+['\"]1\s+day['\"]|yesterday", where, re.IGNORECASE):
+            yesterday = (today - timedelta(days=1)).isoformat()
+            params[date_col] = f"gte.{yesterday}T00:00:00"
+
+        # "last N days" / "INTERVAL 'N days'"
+        elif m := re.search(r"INTERVAL\s+['\"](\d+)\s+day", where, re.IGNORECASE):
+            cutoff = (today - timedelta(days=int(m.group(1)))).isoformat()
+            params[date_col] = f"gte.{cutoff}T00:00:00"
+
+        # "this week"
+        elif re.search(r"this\s+week", where, re.IGNORECASE):
+            start_of_week = (today - timedelta(days=today.weekday())).isoformat()
+            params[date_col] = f"gte.{start_of_week}T00:00:00"
+
+        # "this month"
+        elif re.search(r"this\s+month", where, re.IGNORECASE):
+            start_of_month = today.replace(day=1).isoformat()
+            params[date_col] = f"gte.{start_of_month}T00:00:00"
+
+        # explicit ISO date  ">= '2026-05-01'"
+        elif m := re.search(r">=\s*['\"](\d{4}-\d{2}-\d{2})['\"]", where):
+            params[date_col] = f"gte.{m.group(1)}T00:00:00"
+
         return params
 
     def _compute_count(self, data: list[dict], query: str) -> list[dict]:
-        """Compute COUNT from raw data."""
-        # Extract group by column if present
+        """Compute COUNT from raw data (Python-side — PostgREST returns raw rows)."""
         group_match = re.search(r'GROUP\s+BY\s+(\w+)', query, re.IGNORECASE)
         if group_match:
             group_col = group_match.group(1)
@@ -421,9 +474,31 @@ class SQLEngineV2:
             for row in data:
                 key = str(row.get(group_col, "unknown"))
                 counts[key] = counts.get(key, 0) + 1
-            return [{"group": k, "count": v} for k, v in counts.items()]
+            return [{"group": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])]
         else:
             return [{"total_count": len(data)}]
+
+    def _compute_sum(self, data: list[dict], query: str) -> list[dict]:
+        """Compute SUM(column) from raw data."""
+        # Extract column being summed: SUM(revenue_amount) or SUM(total)
+        m = re.search(r'SUM\s*\(\s*(\w+)\s*\)', query, re.IGNORECASE)
+        if not m:
+            return [{"sum": None, "note": "could not parse SUM column"}]
+        col = m.group(1)
+        group_match = re.search(r'GROUP\s+BY\s+(\w+)', query, re.IGNORECASE)
+        if group_match:
+            group_col = group_match.group(1)
+            sums: dict[str, float] = {}
+            for row in data:
+                key = str(row.get(group_col, "unknown"))
+                try:
+                    sums[key] = sums.get(key, 0.0) + float(row.get(col, 0) or 0)
+                except (TypeError, ValueError):
+                    pass
+            return [{"group": k, "sum": round(v, 2)} for k, v in sorted(sums.items(), key=lambda x: -x[1])]
+        else:
+            total = sum(float(row.get(col, 0) or 0) for row in data if row.get(col) is not None)
+            return [{"total_sum": round(total, 2), "column": col, "row_count": len(data)}]
 
     def generate_join_query(
         self,
