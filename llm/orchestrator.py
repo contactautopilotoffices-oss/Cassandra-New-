@@ -30,13 +30,16 @@ from cassandra.llm.openai_client import (
     LLMResult,
     SYSTEM_PROMPT,
     TOOL_DEFINITIONS,
+    MAX_HISTORY_MESSAGES,
 )
 from cassandra.orchestrator import ToolResult  # Shared type
 from cassandra.tools.calculate_date import CalculateDateTool
+from cassandra.tools.classify_ticket import ClassifyTicketTool
 from cassandra.tools.create_ticket import CreateTicketTool
 from cassandra.tools.fetch_context import FetchContextTool
+from cassandra.tools.health_score import HealthScoreTool
 from cassandra.tools.query_tickets import QueryTicketsTool
-from cassandra.tools.sql_engine import SQLEngineTool
+from cassandra.tools.sql_engine_v2 import SQLEngineV2Tool  # v2: FK-aware JOINs
 from cassandra.tools.voice_enroll import VoiceEnrollTool
 
 logger = logging.getLogger("cassandra.llm.orchestrator")
@@ -89,10 +92,12 @@ class LLMOrchestrator:
         # Initialize tools
         self._tools: dict[str, Any] = {
             "calculate_date": CalculateDateTool(),
+            "classify_ticket": ClassifyTicketTool(),  # AI priority/category detection
             "create_ticket": CreateTicketTool(),
             "fetch_context": FetchContextTool(),
+            "health_score": HealthScoreTool(),
             "query_tickets": QueryTicketsTool(),
-            "sql_query": SQLEngineTool(),
+            "sql_query": SQLEngineV2Tool(),  # v2: FK-aware JOINs, Python-side merge
             "enroll_voice": VoiceEnrollTool(),
         }
 
@@ -171,6 +176,152 @@ class LLMOrchestrator:
                 error=f"TOOL_RAISED: {type(exc).__name__}: {exc}",
                 execution_ms=elapsed_ms,
             )
+
+    def _generate_clarification(
+        self,
+        message: str,
+        tool_results: list[ToolResult],
+        context: dict,
+    ) -> Optional[str]:
+        """
+        Generate clarification when query returns empty/inconclusive results.
+
+        Instead of saying "I don't have information", offer helpful alternatives.
+        """
+        # Check if any result is empty or failed
+        has_data = False
+        has_error = False
+        entities = []
+
+        for tr in tool_results:
+            if tr.success:
+                data = tr.result
+                if data and (isinstance(data, list) and len(data) > 0 or isinstance(data, dict) and data):
+                    has_data = True
+            if tr.error:
+                has_error = True
+
+        # If we have data, no clarification needed
+        if has_data:
+            return None
+
+        # Extract entities from the query for helpful suggestions
+        import re
+        words = re.findall(r'\b\w+\b', message.lower())
+        entity_keywords = {
+            'electricity': 'electricity_readings',
+            'energy': 'electricity_readings',
+            'power': 'electricity_readings',
+            'ticket': 'tickets',
+            'issue': 'tickets',
+            'complaint': 'tickets',
+            'mst': 'mst_workload',
+            'staff': 'users',
+            'property': 'properties',
+            'building': 'properties',
+        }
+        for word in words:
+            if word in entity_keywords and entity_keywords[word] not in entities:
+                entities.append(entity_keywords[word])
+
+        # Use context for better suggestions
+        current_property = context.get("property_id", "")
+        if current_property:
+            alternatives.insert(0, f"You're viewing property ID: {current_property[:8]}... — try selecting a different property")
+
+        # Build clarification message
+        alternatives = []
+
+        # Suggest time range expansion
+        alternatives.append("Try a different time range (e.g., last 30 days instead of this month)")
+
+        # Suggest property search
+        if 'properties' not in entities:
+            alternatives.append("Check a different property or use a partial name search")
+
+        # Suggest checking data exists
+        if entities:
+            alternatives.append(f"Verify data exists in {', '.join(set(entities))} table")
+
+        # Specific suggestions based on error type
+        if has_error:
+            alternatives.insert(0, "There was an error accessing the data. Let me know if you'd like to rephrase.")
+
+        if not alternatives:
+            return None
+
+        response = "I found no results for your query. Here's what you can try:\n\n"
+        response += "\n".join(f"{i+1}. {alt}" for i, alt in enumerate(alternatives))
+        response += "\n\nWould you like me to help with any of these?"
+
+        return response
+
+    def _check_query_ambiguity(self, message: str, context: dict) -> Optional[str]:
+        """
+        Detect combination queries that need clarification before execution.
+
+        Returns a clarification question if ambiguity detected, None otherwise.
+        """
+        import re
+        msg_lower = message.lower()
+
+        clarifications = []
+
+        # 1. Check if property name is ambiguous (multiple matches possible)
+        property_meta = context.get("property_metadata", {})
+        if isinstance(property_meta, dict) and len(property_meta) > 1:
+            # Check if message mentions a partial property name
+            for prop_name in property_meta.keys():
+                if prop_name.lower() in msg_lower and len(prop_name) > 3:
+                    clarifications.append(
+                        f"I found multiple properties. Did you mean '{prop_name}'?"
+                    )
+                    break
+
+        # 2. Check for time range ambiguity
+        time_keywords = ['yesterday', 'last week', 'last month', 'this month', 'recently']
+        has_time = any(kw in msg_lower for kw in time_keywords)
+        has_specific_date = bool(re.search(r'\d{4}-\d{2}-\d{2}', message))
+
+        if has_time and not has_specific_date:
+            clarifications.append(
+                "Would you like me to clarify the time range (e.g., last 7 days, last 30 days, specific dates)?"
+            )
+
+        # 3. Check for aggregation scope ambiguity
+        agg_keywords = ['compare', 'all', 'across', 'total', 'sum', 'average']
+        has_agg = any(kw in msg_lower for kw in agg_keywords)
+        has_property_specific = context.get("property_id") and len(str(context.get("property_id", ""))) > 10
+
+        if has_agg and has_property_specific:
+            clarifications.append(
+                "I see you want to aggregate across properties. Should I include all properties or specific ones?"
+            )
+
+        # 4. Check for missing critical context
+        entity_keywords = {
+            'electricity': 'electricity_readings',
+            'energy': 'electricity_readings',
+            'ticket': 'tickets',
+            'mst': 'mst_workload',
+            'staff': 'users',
+        }
+        detected_entities = []
+        for kw, entity in entity_keywords.items():
+            if kw in msg_lower:
+                detected_entities.append(entity)
+
+        # If multiple entities detected, might need scope clarification
+        if len(set(detected_entities)) > 1:
+            clarifications.append(
+                f"I see you're asking about {', '.join(set(detected_entities))}. Should I query all or filter by property?"
+            )
+
+        # Return first clarification (one at a time)
+        if clarifications:
+            return clarifications[0]
+
+        return None
 
     def _format_tool_results(self, tool_results: list[ToolResult]) -> str:
         """Format tool results for the LLM to synthesize."""
@@ -264,10 +415,12 @@ class LLMOrchestrator:
         context["photo_url"] = photo_url
         context["allowed_property_ids"] = allowed_property_ids or []
 
-        # Build history for the LLM
-        history = conversation_history[-10:] if conversation_history else []
+        # Build history for the LLM (16 pairs = 32 messages — see MAX_HISTORY_MESSAGES)
+        history = conversation_history[-MAX_HISTORY_MESSAGES:] if conversation_history else []
 
         # First call: Get LLM response with potential tool calls
+        # NOTE: Ambiguity detection is handled by the LLM's PERCEPTION block.
+        # No Python-level interception — let the model decide when to ask.
         messages = [{"role": "user", "content": message}]
 
         self._logger.info(
@@ -286,15 +439,43 @@ class LLMOrchestrator:
         all_tool_calls = llm_result.tool_calls
 
         # Execute tool calls (up to MAX_TOOL_CALLS)
+        classify_result: dict[str, Any] | None = None
+        pending_create_ticket_args: dict[str, Any] | None = None
+
         for i, tc in enumerate(all_tool_calls[: self.MAX_TOOL_CALLS]):
             tool_name = tc["name"]
             tool_args = tc.get("arguments", {})
 
             self._logger.info(f"[ORCH] Tool call {i+1}: {tool_name}({list(tool_args.keys())})")
 
-            # Inject photo_url into create_ticket if present
-            if tool_name == "create_ticket" and photo_url:
-                tool_args = {**tool_args, "photo_url": photo_url}
+            # Handle classify_ticket → create_ticket chaining
+            if tool_name == "classify_ticket":
+                result = self._execute_tool(tool_name, tool_args, context)
+                tool_results.append(result)
+                if result.success and result.result:
+                    classify_result = result.result
+                    # Store create_ticket args for the next iteration
+                    pending_create_ticket_args = {
+                        "title": tool_args.get("title", ""),
+                        "description": tool_args.get("description", ""),
+                        "priority": classify_result.get("apply_priority", "medium"),
+                        "category": classify_result.get("category_id") or classify_result.get("apply_category", ""),
+                        "property_id": context.get("property_id", ""),
+                    }
+                continue  # Skip to next tool call
+
+            if tool_name == "create_ticket":
+                # If we just classified, use the classified priority/category
+                if classify_result and pending_create_ticket_args:
+                    tool_args = {**tool_args, **pending_create_ticket_args}
+                    # Remove empty values
+                    tool_args = {k: v for k, v in tool_args.items() if v}
+                    self._logger.info(f"[ORCH] Injecting classification: priority={pending_create_ticket_args.get('priority')}")
+                    classify_result = None  # Reset after use
+                    pending_create_ticket_args = None
+                # Inject photo_url if available
+                if photo_url:
+                    tool_args = {**tool_args, "photo_url": photo_url}
 
             result = self._execute_tool(tool_name, tool_args, context)
             tool_results.append(result)
@@ -304,6 +485,62 @@ class LLMOrchestrator:
                 f"{'✅' if result.success else '❌'} "
                 f"({result.execution_ms:.0f}ms)"
             )
+
+        # ── O→A RECOVERY EDGE ──────────────────────────────────────────────────
+        # If every tool call returned empty rows, give the LLM ONE retry with an
+        # explicit directive to broaden scope (remove date filter, go org-wide, etc.)
+        # This is the Observe→Act feedback loop. Max 1 cycle to stay fast.
+        # ────────────────────────────────────────────────────────────────────────
+        if tool_results:
+            def _all_empty(results: list[ToolResult]) -> bool:
+                return all(
+                    not tr.success or
+                    tr.result is None or
+                    (isinstance(tr.result, list) and len(tr.result) == 0) or
+                    (isinstance(tr.result, dict) and not tr.result)
+                    for tr in results
+                )
+
+            if _all_empty(tool_results):
+                self._logger.info("[ORCH] O→A recovery: all tools returned empty — retrying with broadened scope")
+                retry_messages = [
+                    {"role": "user", "content": message},
+                    {
+                        "role": "assistant",
+                        "content": "My previous query returned no results. Let me try with a broader scope.",
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            "The last query returned 0 rows. Retry with adjusted scope:\n"
+                            "• If date-filtered → remove date filter or expand to last 90 days\n"
+                            "• If property-specific → try org-wide (omit property_id filter)\n"
+                            "• If status-filtered → remove or broaden the status filter\n"
+                            f"Original question: {message}"
+                        ),
+                    },
+                ]
+                retry_llm = self._llm.chat_with_tools(
+                    messages=retry_messages,
+                    context=context,
+                    history=history,
+                )
+                if retry_llm.tool_calls:
+                    retry_results: list[ToolResult] = []
+                    for tc in retry_llm.tool_calls[: self.MAX_TOOL_CALLS]:
+                        tname = tc["name"]
+                        targs = tc.get("arguments", {})
+                        if tname == "create_ticket" and photo_url:
+                            targs = {**targs, "photo_url": photo_url}
+                        retry_results.append(self._execute_tool(tname, targs, context))
+                        self._logger.info(f"[ORCH] Retry tool: {tname} → {'✅' if retry_results[-1].success else '❌'}")
+                    # Use retry results if they have data, otherwise keep empty for LLM to explain
+                    if not _all_empty(retry_results):
+                        tool_results = retry_results
+                        llm_result = retry_llm
+                    else:
+                        # Both attempts empty — keep original for synthesis LLM to format nicely
+                        tool_results = retry_results
 
         # If tools were called, do a second LLM call to synthesize results
         if tool_results:
@@ -440,7 +677,7 @@ class LLMOrchestrator:
         context["photo_url"] = photo_url
         context["allowed_property_ids"] = allowed_property_ids or []
 
-        history = conversation_history[-10:] if conversation_history else []
+        history = conversation_history[-MAX_HISTORY_MESSAGES:] if conversation_history else []
         messages = [{"role": "user", "content": message}]
 
         # Stream the initial LLM call to get reasoning and tool calls
@@ -490,21 +727,62 @@ class LLMOrchestrator:
         )
 
         tool_results: list[ToolResult] = []
+        classify_result: dict[str, Any] | None = None
+        pending_create_ticket_args: dict[str, Any] | None = None
 
         # Execute tool calls with streaming events
         for i, tc in enumerate(llm_result.tool_calls[: self.MAX_TOOL_CALLS]):
             tool_name = tc["name"]
             tool_args = tc.get("arguments", {})
 
-            yield StreamChunk("tool_start", {
-                "step": i + 1,
-                "tool": tool_name,
-                "message": f"Running {tool_name}...",
-            })
+            # Handle classify_ticket → create_ticket chaining
+            if tool_name == "classify_ticket":
+                yield StreamChunk("tool_start", {
+                    "step": i + 1,
+                    "tool": tool_name,
+                    "message": "Analyzing ticket...",
+                })
+                result = self._execute_tool(tool_name, tool_args, context)
+                tool_results.append(result)
+                if result.success and result.result:
+                    classify_result = result.result
+                    pending_create_ticket_args = {
+                        "title": tool_args.get("title", ""),
+                        "description": tool_args.get("description", ""),
+                        "priority": classify_result.get("apply_priority", "medium"),
+                        "category": classify_result.get("category_id") or classify_result.get("apply_category", ""),
+                        "property_id": context.get("property_id", ""),
+                    }
+                yield StreamChunk("tool_result", {
+                    "tool": tool_name,
+                    "success": result.success,
+                    "message": f"Priority: {classify_result.get('priority', 'medium')}" if result.success else "Failed",
+                    "execution_ms": result.execution_ms,
+                })
+                continue
 
-            # Inject photo_url
-            if tool_name == "create_ticket" and photo_url:
-                tool_args = {**tool_args, "photo_url": photo_url}
+            if tool_name == "create_ticket":
+                yield StreamChunk("tool_start", {
+                    "step": i + 1,
+                    "tool": tool_name,
+                    "message": "Creating ticket...",
+                })
+                # If we just classified, use the classified priority/category
+                if classify_result and pending_create_ticket_args:
+                    tool_args = {**tool_args, **pending_create_ticket_args}
+                    tool_args = {k: v for k, v in tool_args.items() if v}
+                    self._logger.info(f"[ORCH] Injecting classification: priority={pending_create_ticket_args.get('priority')}")
+                    classify_result = None
+                    pending_create_ticket_args = None
+                # Inject photo_url
+                if photo_url:
+                    tool_args = {**tool_args, "photo_url": photo_url}
+            else:
+                yield StreamChunk("tool_start", {
+                    "step": i + 1,
+                    "tool": tool_name,
+                    "message": f"Running {tool_name}...",
+                })
 
             result = self._execute_tool(tool_name, tool_args, context)
             tool_results.append(result)
