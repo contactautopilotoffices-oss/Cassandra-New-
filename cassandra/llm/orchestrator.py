@@ -32,6 +32,10 @@ from cassandra.llm.openai_client import (
     TOOL_DEFINITIONS,
     MAX_HISTORY_MESSAGES,
 )
+from cassandra.llm.date_ranges import materialize_date_ranges
+from cassandra.llm.date_assertion import assert_temporal_query
+from cassandra.llm.scope_tag import detect_query_scope, ScopeTag
+from cassandra.llm.validation_gate import validate_synthesis
 from cassandra.orchestrator import ToolResult  # Shared type
 from cassandra.tools.calculate_date import CalculateDateTool
 from cassandra.tools.classify_ticket import ClassifyTicketTool
@@ -894,8 +898,15 @@ class LLMOrchestrator:
         )
 
         tool_results: list[ToolResult] = []
+        tool_scopes: list[ScopeTag] = []  # Fix 3: scope tag per tool result
+        had_tool_failure: bool = False
         classify_result: dict[str, Any] | None = None
         pending_create_ticket_args: dict[str, Any] | None = None
+
+        # Materialize date ranges for assertion (Fix 2)
+        from zoneinfo import ZoneInfo
+        _now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
+        _resolved_ranges = materialize_date_ranges(_now_ist)
 
         # Execute tool calls with streaming events
         for i, tc in enumerate(llm_result.tool_calls[: self.MAX_TOOL_CALLS]):
@@ -979,8 +990,57 @@ class LLMOrchestrator:
                     "message": f"Running {tool_name}...",
                 })
 
+            # ── Fix 2: Pre-execution date assertion for sql_query ─────────
+            if tool_name == "sql_query" and tool_args.get("query"):
+                date_check = assert_temporal_query(
+                    message, tool_args["query"], _resolved_ranges
+                )
+                if not date_check.passed:
+                    self._logger.warning(
+                        f"[ORCH] Date assertion FAILED: {date_check.correction_hint}"
+                    )
+                    yield StreamChunk("reasoning", {
+                        "message": f"Date check: {date_check.correction_hint}",
+                    })
+                    # Inject the correct bound into the SQL
+                    if date_check.expected_bound:
+                        corrected_query = tool_args["query"]
+                        # If no date filter at all, append the correct one
+                        if "created_at" not in corrected_query.lower():
+                            # Insert before ORDER BY/LIMIT/GROUP BY, or at the end
+                            import re as _re
+                            insert_point = _re.search(
+                                r'\b(ORDER BY|LIMIT|GROUP BY)\b',
+                                corrected_query,
+                                _re.IGNORECASE,
+                            )
+                            bound_clause = (
+                                f" AND created_at >= '{date_check.expected_bound}T00:00:00'"
+                            )
+                            if insert_point:
+                                pos = insert_point.start()
+                                corrected_query = (
+                                    corrected_query[:pos] + bound_clause + " " + corrected_query[pos:]
+                                )
+                            else:
+                                corrected_query += bound_clause
+                        tool_args = {**tool_args, "query": corrected_query}
+                        self._logger.info(
+                            f"[ORCH] Date assertion: injected bound → {date_check.expected_bound}"
+                        )
+
             result = self._execute_tool(tool_name, tool_args, context)
             tool_results.append(result)
+
+            # ── Fix 3: Scope tag this result ──────────────────────────────
+            if tool_name == "sql_query" and tool_args.get("query"):
+                scope = detect_query_scope(tool_args["query"], message)
+            else:
+                scope = ScopeTag.UNKNOWN
+            tool_scopes.append(scope)
+
+            if not result.success:
+                had_tool_failure = True
 
             yield StreamChunk("tool_result", {
                 "tool": tool_name,
@@ -988,6 +1048,18 @@ class LLMOrchestrator:
                 "message": result.error or "Done",
                 "execution_ms": result.execution_ms,
             })
+
+        # ── Fix 3: Detect user's intended scope for validation ────────────
+        _user_intent_scope = None
+        _msg_lower = message.lower()
+        if any(p in _msg_lower for p in ["this month", "current month"]):
+            _user_intent_scope = ScopeTag.THIS_MONTH
+        elif any(p in _msg_lower for p in ["last month", "previous month"]):
+            _user_intent_scope = ScopeTag.LAST_MONTH
+        elif any(p in _msg_lower for p in ["today", "today's"]):
+            _user_intent_scope = ScopeTag.TODAY
+        elif "yesterday" in _msg_lower:
+            _user_intent_scope = ScopeTag.YESTERDAY
 
         # Synthesize with second LLM call if tools were used
         if tool_results:
@@ -1022,6 +1094,60 @@ class LLMOrchestrator:
 
         # Embed ticket data
         final_answer = self._embed_ticket_data(final_answer, tool_results)
+
+        # ── Fix 3: Validation Gate — block provable contradictions ─────────
+        # Runs AFTER synthesis, BEFORE answer reaches user.
+        # Fail-open: only blocks on provable issues (sum mismatch, scope mismatch,
+        # ungrounded count). Ambiguous answers pass through (= status quo).
+        validation = validate_synthesis(
+            answer=final_answer,
+            tool_scopes=tool_scopes,
+            user_intent_scope=_user_intent_scope,
+            had_tool_failure=had_tool_failure,
+        )
+        if not validation.passed:
+            self._logger.warning(
+                f"[ORCH] Validation gate BLOCKED: {validation.violation_type} — {validation.reason}"
+            )
+            yield StreamChunk("reasoning", {
+                "message": f"Quality check failed: {validation.reason}. Re-running query...",
+            })
+            # Re-run: tell the LLM what was wrong and force correction
+            correction_messages = [
+                {"role": "user", "content": message},
+                {
+                    "role": "assistant",
+                    "content": final_answer,
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"VALIDATION FAILED: {validation.reason}\n\n"
+                        "Your previous answer had a provable error. Fix it:\n"
+                        "- If sum mismatch: re-query and ensure breakdown adds up to total.\n"
+                        "- If scope mismatch: the numbers came from the wrong time range. Re-query with correct date bounds.\n"
+                        "- If ungrounded count: a query failed — do NOT cite numbers you don't have. Say what failed.\n"
+                        f"- Use these date bounds: today={_resolved_ranges['today']}, "
+                        f"this_month={_resolved_ranges['this_month']['start']}..{_resolved_ranges['this_month']['end']}\n\n"
+                        f"Original question: {message}\n"
+                        "Give the corrected answer now. Plain text, no markdown."
+                    ),
+                },
+            ]
+            corrected_answer = ""
+            for chunk in self._llm.stream_chat(
+                messages=correction_messages,
+                context=context,
+                history=history,
+                synthesis_mode=True,
+            ):
+                if chunk.get("type") == "content":
+                    token = chunk.get("content", "")
+                    corrected_answer += token
+            if corrected_answer.strip():
+                final_answer = self._sanitize_answer(corrected_answer.strip())
+                self._logger.info("[ORCH] Validation gate: correction applied")
+            # If correction also empty, fall through with original (fail-open)
 
         yield StreamChunk("done", {
             "response": final_answer,

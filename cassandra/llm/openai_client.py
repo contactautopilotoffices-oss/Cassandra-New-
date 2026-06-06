@@ -686,16 +686,21 @@ class OpenAIClient:
 
         import datetime
         from zoneinfo import ZoneInfo
+        from cassandra.llm.date_ranges import format_date_context_block
         ist = ZoneInfo("Asia/Kolkata")
         now_ist = datetime.datetime.now(ist)
         current_time = now_ist.strftime("%Y-%m-%d %H:%M:%S IST")
         is_midnight = now_ist.hour < 2
         midnight_note = "\nNOTE: It is currently just past midnight in India. If the user says 'today' or 'yesterday', ask which specific date they mean before querying.\n" if is_midnight else ""
 
+        # Materialized date ranges — deterministic, computed in Python (not by the LLM)
+        date_context = format_date_context_block(now_ist)
+
         # Inject context as system info
         context_info = (
             f"Current user context:\n"
             f"- current_datetime: {current_time}{midnight_note}\n"
+            f"{date_context}\n"
             f"- organization_id: {context.get('org_id', 'UNKNOWN')}\n"
             f"- user_id: {context.get('user_id', 'UNKNOWN')}\n"
             f"- role: {context.get('role', 'tenant')}\n"
