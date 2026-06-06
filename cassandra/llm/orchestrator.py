@@ -546,6 +546,11 @@ class LLMOrchestrator:
         classify_result: dict[str, Any] | None = None
         pending_create_ticket_args: dict[str, Any] | None = None
 
+        # Materialize date ranges for assertion (Fix 2)
+        from zoneinfo import ZoneInfo
+        _now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
+        _resolved_ranges = materialize_date_ranges(_now_ist)
+
         for i, tc in enumerate(all_tool_calls[: self.MAX_TOOL_CALLS]):
             tool_name = tc["name"]
             tool_args = tc.get("arguments", {})
@@ -616,6 +621,45 @@ class LLMOrchestrator:
                 # Inject photo_url if available
                 if photo_url:
                     tool_args = {**tool_args, "photo_url": photo_url}
+
+            # ── Fix 2: Pre-execution date assertion for sql_query ─────────
+            if tool_name == "sql_query" and tool_args.get("query"):
+                date_check = assert_temporal_query(
+                    message, tool_args["query"], _resolved_ranges
+                )
+                if not date_check.passed:
+                    self._logger.warning(
+                        f"[ORCH] Date assertion FAILED: {date_check.correction_hint}"
+                    )
+                    if on_progress:
+                        on_progress("reasoning", {
+                            "message": f"Date check: {date_check.correction_hint}",
+                        })
+                    # Inject the correct bound into the SQL
+                    if date_check.expected_bound:
+                        corrected_query = tool_args["query"]
+                        # If no date filter at all, append the correct one
+                        if "created_at" not in corrected_query.lower():
+                            import re as _re
+                            insert_point = _re.search(
+                                r'\b(ORDER BY|LIMIT|GROUP BY)\b',
+                                corrected_query,
+                                _re.IGNORECASE,
+                            )
+                            bound_clause = (
+                                f" AND created_at >= '{date_check.expected_bound}T00:00:00'"
+                            )
+                            if insert_point:
+                                pos = insert_point.start()
+                                corrected_query = (
+                                    corrected_query[:pos] + bound_clause + " " + corrected_query[pos:]
+                                )
+                            else:
+                                corrected_query += bound_clause
+                        tool_args = {**tool_args, "query": corrected_query}
+                        self._logger.info(
+                            f"[ORCH] Date assertion: injected bound → {date_check.expected_bound}"
+                        )
 
             result = self._execute_tool(tool_name, tool_args, context)
             tool_results.append(result)
