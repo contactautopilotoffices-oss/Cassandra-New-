@@ -1042,12 +1042,26 @@ class LLMOrchestrator:
             if not result.success:
                 had_tool_failure = True
 
-            yield StreamChunk("tool_result", {
+            # Build tool_result event — include SQL + raw output for sql_query
+            tool_event: dict[str, Any] = {
                 "tool": tool_name,
                 "success": result.success,
                 "message": result.error or "Done",
                 "execution_ms": result.execution_ms,
-            })
+            }
+            if tool_name == "sql_query":
+                tool_event["sql_query"] = tool_args.get("query", "")
+                if result.success and result.result is not None:
+                    raw = result.result
+                    if isinstance(raw, list):
+                        tool_event["row_count"] = len(raw)
+                        tool_event["raw_result"] = raw[:20]  # cap at 20 rows for UI
+                    elif isinstance(raw, dict):
+                        tool_event["row_count"] = 1
+                        tool_event["raw_result"] = raw
+                    tool_event["message"] = f"{tool_event.get('row_count', 0)} row(s)"
+
+            yield StreamChunk("tool_result", tool_event)
 
         # ── Fix 3: Detect user's intended scope for validation ────────────
         _user_intent_scope = None

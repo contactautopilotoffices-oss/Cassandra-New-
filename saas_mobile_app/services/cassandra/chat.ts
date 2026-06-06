@@ -147,8 +147,17 @@ export function streamChat(
             case 'tool_result': {
               const success = ev.data.success as boolean;
               const tool = (ev.data.tool as string) || '';
+              const sqlQuery = (ev.data.sql_query as string) || '';
+              const rowCount = ev.data.row_count as number | undefined;
               if (onReasoning) {
-                onReasoning(success ? `${tool} completed` : `${tool} failed`);
+                let stepMsg = success ? `${tool} completed` : `${tool} failed`;
+                if (sqlQuery) {
+                  stepMsg += `\nSQL: ${sqlQuery}`;
+                }
+                if (rowCount !== undefined) {
+                  stepMsg += `\nRows: ${rowCount}`;
+                }
+                onReasoning(stepMsg);
               }
               break;
             }
