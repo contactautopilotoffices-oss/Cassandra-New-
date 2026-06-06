@@ -22,12 +22,9 @@ const ORG_ID_KEY = 'cassandra_org_id';
 const PROPERTY_ID_KEY = 'cassandra_property_id';
 const REFRESH_BUFFER_SECONDS = 300; // 5 minutes before expiry
 
-const DEFAULT_URL = 'https://www.back2basiics.com';
-const API_URL = (
-  process.env.EXPO_PUBLIC_VOICE_API_URL ??
-  process.env.EXPO_PUBLIC_CASSANDRA_API_URL ??
-  DEFAULT_URL
-).replace(/\/$/, '');
+// Hardcode Cassandra URL - the web app doesn't have this endpoint
+const CASSANDRA_API_URL = 'https://cassandra-new.onrender.com';
+const API_URL = CASSANDRA_API_URL.replace(/\/$/, '');
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -178,7 +175,8 @@ export async function clearToken(): Promise<void> {
 // ─── WebSocket URL ───────────────────────────────────────────────────────────
 
 export function getWebSocketUrl(orgId: string): string {
-  const wsUrl = API_URL.replace(/^http/, 'ws');
+  // WebSocket uses wss:// for secure connections
+  const wsUrl = API_URL.replace(/^http/, 'wss');
   return `${wsUrl}/ws/audio/${encodeURIComponent(orgId)}`;
 }
 

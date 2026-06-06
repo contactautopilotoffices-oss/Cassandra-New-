@@ -1,3 +1,8 @@
 .env.shared
 .env.shared.local
 .env.shared.local.bak
+node_modules
+__pycache__
+*.pyc
+.expo
+logs/

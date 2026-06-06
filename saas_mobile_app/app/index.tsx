@@ -1,8 +1,43 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useEffect } from 'react';
 import SkeletonLoader from '@/components/dashboard/lovable/SkeletonLoader';
+import { createClient } from '@/utils/supabase/client';
+
+// Separate component for No Properties screen
+function NoPropertiesScreen() {
+  const router = useRouter();
+  const handleReturnToLogin = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+      <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
+        No Properties Assigned
+      </Text>
+      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 32 }}>
+        You don't have access to any properties yet. Contact your administrator.
+      </Text>
+      <TouchableOpacity
+        onPress={handleReturnToLogin}
+        style={{
+          backgroundColor: '#3b82f6',
+          paddingHorizontal: 32,
+          paddingVertical: 14,
+          borderRadius: 10,
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+          Return to Login
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 export default function Index() {
   const { user, isLoading, membership, isMembershipLoading } = useAuth();
@@ -64,14 +99,5 @@ export default function Index() {
 
   // User is authenticated but has no property access — show loading instead of login
   // (they may need to be invited, but we shouldn't log them out)
-  return (
-    <View style={{ flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-      <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
-        No Properties Assigned
-      </Text>
-      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center' }}>
-        You don't have access to any properties yet. Contact your administrator.
-      </Text>
-    </View>
-  );
+  return <NoPropertiesScreen />;
 }

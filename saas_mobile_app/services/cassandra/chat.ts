@@ -12,7 +12,8 @@
 
 import { getValidToken, getOrgId, API_URL } from './cassandraAuthService';
 
-const BASE_URL = process.env.EXPO_PUBLIC_CASSANDRA_API_URL || API_URL;
+// Hardcode Cassandra URL - the web app doesn't have this endpoint
+const BASE_URL = API_URL;
 
 export interface StreamChatOptions {
   photoUrl?: string;

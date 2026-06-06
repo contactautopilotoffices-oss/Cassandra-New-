@@ -12,7 +12,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "autopilot",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.autopilot.app"
@@ -97,12 +97,12 @@
           }
         }
       ],
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      "expo-font"
     ],
     "updates": {
       "enabled": false
     },
-    "runtimeVersion": "1.0.0",
     "experiments": {
       "typedRoutes": true
     },

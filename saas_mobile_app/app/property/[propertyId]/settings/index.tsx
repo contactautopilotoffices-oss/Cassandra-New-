@@ -103,25 +103,23 @@ export default function SettingsScreen() {
   const fetchData = useCallback(async () => {
     if (!propertyId || !user) return { property: null as Property | null, userProfile: null as UserProfile | null };
     try {
+      // Use Supabase directly for mobile - more reliable than web API
+      const supabase = createClient();
       const [propRes, userRes] = await Promise.all([
-        serverApi.query<Property[]>({
-          table: 'properties',
-          action: 'select',
-          select: 'id, name, code, address',
-          filters: [{ op: 'eq', column: 'id', value: propertyId }],
-          limit: 1,
-        }),
-        serverApi.query<UserProfile[]>({
-          table: 'users',
-          action: 'select',
-          select: 'id, full_name, email, user_photo_url, role, designation',
-          filters: [{ op: 'eq', column: 'id', value: user.id }],
-          limit: 1,
-        }),
+        supabase
+          .from('properties')
+          .select('id, name, code, address')
+          .eq('id', propertyId)
+          .maybeSingle(),
+        supabase
+          .from('users')
+          .select('id, full_name, email, user_photo_url, role, designation')
+          .eq('id', user.id)
+          .maybeSingle(),
       ]);
       return {
-        property: propRes.data?.[0] || null,
-        userProfile: userRes.data?.[0] || null,
+        property: (propRes.data || null) as Property | null,
+        userProfile: (userRes.data || null) as UserProfile | null,
       };
     } catch (error) {
       console.error('Error fetching settings data:', error);
@@ -268,27 +266,31 @@ export default function SettingsScreen() {
   };
 
   const handleUploadBg = async () => {
+    console.log('[Settings] handleUploadBg called - opening image picker');
+    Alert.alert('Test', 'Upload button tapped!', [{ text: 'OK' }]);
     if (Platform.OS === 'web') return;
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[Settings] Permission status:', status);
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'We need camera roll permissions to upload an image.');
         return;
       }
-      
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [9, 16], // Mobile screen ratio
+        aspect: [9, 16],
         quality: 0.8,
       });
+      console.log('[Settings] ImagePicker result:', JSON.stringify(result));
 
-      if (!result.canceled && result.assets[0].uri) {
+      if (!result.canceled && result.assets?.[0]?.uri) {
         await handleSelectBg(result.assets[0].uri);
       }
     } catch (e) {
       console.error('Image picker error:', e);
-      Alert.alert('Error', 'Failed to pick image.');
+      Alert.alert('Error', 'Failed to pick image: ' + (e instanceof Error ? e.message : 'Unknown error'));
     }
   };
 
@@ -531,7 +533,13 @@ export default function SettingsScreen() {
       {showBgPicker && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setShowBgPicker(false)}>
           <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
-            <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setShowBgPicker(false)} activeOpacity={1} />
+            {/* Backdrop - only fills top area above the sheet */}
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              onPress={() => setShowBgPicker(false)}
+              activeOpacity={1}
+            />
+            {/* Sheet content */}
             <SafeBlurView intensity={70} tint="dark" style={styles.bgPickerSheet}>
               <LinearGradient colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)', 'rgba(0,0,0,0.25)']} style={StyleSheet.absoluteFillObject} />
 
@@ -578,7 +586,7 @@ export default function SettingsScreen() {
       {showSecurityModal && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setShowSecurityModal(false)}>
           <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
-            <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setShowSecurityModal(false)} activeOpacity={1} />
+            <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShowSecurityModal(false)} activeOpacity={1} />
             <SafeBlurView intensity={70} tint="dark" style={styles.bgPickerSheet}>
               <LinearGradient colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)', 'rgba(0,0,0,0.25)']} style={StyleSheet.absoluteFillObject} />
 
@@ -824,6 +832,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '70%', // Leave bottom 30% for the sheet (touchable)
+  },
   bgPickerSheet: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -833,6 +848,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
     overflow: 'hidden',
+  },
     minHeight: 400,
   },
   bgPickerHeader: {

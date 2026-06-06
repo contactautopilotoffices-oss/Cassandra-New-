@@ -21,6 +21,7 @@ import { useServerQuery } from '@/hooks/useServerQuery';
 import { queryKeys } from '@/utils/queryKeys';
 import { Colors } from '@/constants/Colors';
 import { apiFetch } from '@/utils/api/mobileApi';
+import { createClient } from '@/utils/supabase/client';
 import { readFileAsArrayBuffer, compressImage } from '@/utils/mediaUtils';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -68,28 +69,38 @@ export default function ProfileScreen() {
   const fetchProfile = useCallback(async () => {
     if (!user) return null;
     try {
-      const response = await apiFetch<any>(`/api/users/${user.id}`);
-      if (response.success && response.data) return response.data;
-      if (response.id || response.full_name) return response;
-      return null;
+      // Use Supabase directly for mobile - more reliable than web API
+      const supabase = createClient();
+      const { data: profileData, error } = await supabase
+        .from('users')
+        .select('id, full_name, email, phone, user_photo_url, role, designation')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile from Supabase:', error);
+        return null;
+      }
+      return profileData as UserProfile | null;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
     }
   }, [user]);
 
+  const { data: profile, isLoading, isFetching, refetch } = useServerQuery<UserProfile | null>(
+    queryKeys.user.profile(user?.id ?? 'none'),
+    fetchProfile,
+    { staleTime: 1000 * 60 * 5 }
+  );
+
+  // Update form when profile loads
   useEffect(() => {
     if (profile) {
       setEditName(profile.full_name || '');
       setEditPhone(profile.phone || '');
     }
   }, [profile]);
-
-  const { data: profile, isLoading, isFetching, refetch } = useServerQuery<UserProfile | null>(
-    queryKeys.user.profile(user?.id ?? 'none'),
-    fetchProfile,
-    { staleTime: 1000 * 60 * 5 }
-  );
 
   const onRefresh = useCallback(() => {
     refetch();

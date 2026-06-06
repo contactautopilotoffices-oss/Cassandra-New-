@@ -3,6 +3,11 @@
     "start:mobile-shared": "bash ./scripts/start-mobile-shared.sh"
   },
   "devDependencies": {
-    "turbo": "^2.9.15"
+    "@types/react": "~19.2.14",
+    "turbo": "^2.9.15",
+    "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "expo": "^56.0.8"
   }
 }
