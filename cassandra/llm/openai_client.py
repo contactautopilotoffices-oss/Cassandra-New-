@@ -42,22 +42,56 @@ _SCHEMA_BLOCK_CACHE: Optional[str] = None
 
 
 def build_schema_block() -> str:
-    """Render live DB schema as 'table: col1, col2, ...' lines from the synced TABLES."""
+    """Render live DB schema as 'table: col1, col2, ... | REQUIRED: ... | FKs: ...' lines."""
     global _SCHEMA_BLOCK_CACHE
     if _SCHEMA_BLOCK_CACHE is not None:
         return _SCHEMA_BLOCK_CACHE
     try:
-        from cassandra.tools.fms_schema import TABLES
+        from cassandra.tools.fms_schema import TABLES, COLUMN_ALIASES, VALID_STATUS, VALID_PRIORITY
+        from cassandra.tools.fk_graph import get_fk_graph
     except Exception as exc:  # pragma: no cover - defensive
         logger.warning(f"[SCHEMA] Could not load live schema: {exc}")
         return ""
+
+    fk_graph = get_fk_graph()
+    table_fks: dict[str, list[str]] = {}
+    for rel in fk_graph.relationships:
+        if rel.get("verified"):
+            from_table = rel["from"]
+            table_fks.setdefault(from_table, []).append(
+                f"{rel['from_col']} → {rel['to']}.{rel['to_col']}"
+            )
+
     lines = []
     for name in sorted(TABLES.keys()):
         cols = TABLES[name].get("columns", [])
-        if cols:
-            lines.append(f"{name}: {', '.join(cols)}")
+        if not cols:
+            continue
+        parts = [f"{name}: {', '.join(cols)}"]
+        req = TABLES[name].get("required_predicates", [])
+        if req:
+            parts.append(f"REQUIRED: {', '.join(req)}")
+        if name in table_fks:
+            parts.append(f"FKs: {'; '.join(table_fks[name])}")
+        lines.append(" | ".join(parts))
+
+    if COLUMN_ALIASES:
+        lines.append("\nCOLUMN ALIASES (never use left side):")
+        for wrong, right in COLUMN_ALIASES.items():
+            lines.append(f"  {wrong} → {right}")
+
+    if VALID_STATUS:
+        lines.append("\nVALID STATUS VALUES:")
+        for table, statuses in VALID_STATUS.items():
+            lines.append(f"  {table}: {', '.join(statuses)}")
+
+    if VALID_PRIORITY:
+        lines.append("\nVALID PRIORITY VALUES:")
+        for table, priorities in VALID_PRIORITY.items():
+            lines.append(f"  {table}: {', '.join(priorities)}")
+
     _SCHEMA_BLOCK_CACHE = "\n".join(lines)
-    logger.info(f"[SCHEMA] Rendered live schema block: {len(lines)} tables")
+    logger.info(f"[SCHEMA] Rendered live schema block: {len(lines)} lines")
     return _SCHEMA_BLOCK_CACHE
 
 
@@ -206,10 +240,14 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         "function": {
             "name": "sql_query",
             "description": (
-                "Execute a SQL query against the FMS PostgreSQL database. "
-                "ALWAYS include organization_id in WHERE clause. "
-                "Use parameterized queries ($1, $2) for safety. "
-                "Never query password_hash, api_key, or token columns."
+                "Execute a SQL SELECT query against the FMS PostgreSQL database via PostgREST. "
+                "ALWAYS include organization_id in the WHERE clause. "
+                "ALWAYS include property_id when querying a single property (omit only for org-wide queries). "
+                "Inline actual UUID values directly in the query string — never use $1/$2 placeholders. "
+                "Supported features: COUNT/SUM/AVG, GROUP BY, ORDER BY asc/desc, date ranges (>=, <, BETWEEN, CURRENT_DATE - INTERVAL), "
+                "JOINs on verified FKs, IN (...), ILIKE '%text%', IS NULL / IS NOT NULL. "
+                "Never query password_hash, api_key, or token columns. "
+                "Never use CURDATE(), NOW(), or FILTER/NULLIF."
             ),
             "parameters": {
                 "type": "object",
@@ -220,7 +258,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                     },
                     "params": {
                         "type": "object",
-                        "description": "Named parameter values for the query",
+                        "description": "Named parameter values for the query (prefer inlining)",
                     },
                 },
                 "required": ["query"],
@@ -413,12 +451,15 @@ columns listed there. If a column you expect is not in that list, do NOT invent 
 Tell the user the field is not tracked or choose a different grounded query path.
 
 DATE HANDLING RULES (CRITICAL):
-- The current date and time is provided in the context below. Use it as the source of truth to resolve "today", "tomorrow", "yesterday", "next week", etc.
-- Always use ISO format in database queries: created_at >= '2026-05-31T00:00:00' AND created_at < '2026-06-01T00:00:00'
+- The current date and time is provided in the context below. Use it as the source of truth.
+- Always use ISO format: created_at >= '2026-06-01T00:00:00' AND created_at < '2026-06-02T00:00:00'
 - Use the current_datetime provided in the context below as the source of truth for "today", "tomorrow", "yesterday", etc.
 - FOR MONTH NAME QUERIES ("January data", "show me February tickets"): You MUST use both >= and < to create a date range. Example: created_at >= '2026-01-01T00:00:00' AND created_at < '2026-02-01T00:00:00'
-- FOR RELATIVE DATES ("last month", "3 weeks ago", "in 10 days"): ALWAYS call the calculate_date tool FIRST to get the exact date, then use that date in your SQL query. NEVER guess or hardcode dates.
-- FOR "WHAT IS TODAY'S DATE?" or similar direct date questions: Answer directly using the current_datetime from context. Do NOT call any tool — just read the date from context and tell the user.
+- FOR RELATIVE DATES ("last month", "3 weeks ago", "in 10 days"): You MAY use CURRENT_DATE - INTERVAL 'N days' directly in SQL, OR call calculate_date first for exact dates.
+- FOR "WHAT IS TODAY'S DATE?" or similar direct date questions: Answer directly using the current_datetime from context. Do NOT call any tool.
+- FOR DATE_TRUNC: DATE_TRUNC('month', created_at) = '2026-06-01' is supported (engine converts to range).
+- FOR BETWEEN: created_at BETWEEN '2026-06-01T00:00:00' AND '2026-06-07T23:59:59' is supported.
+- FOR day-extract: created_at::date = '2026-06-06' is supported (engine converts to range).
 
 CONVERSATION STYLE:
 - Professional, concise, and direct. No filler phrases, no excessive enthusiasm.
@@ -473,27 +514,29 @@ health_score tool. NEVER compute it with sql_query and NEVER fabricate a number.
 
 FK JOIN RULES — FOREIGN KEY RELATIONSHIPS:
 CRITICAL: Always use the correct FK columns for JOINs. NEVER invent relationships.
-The FK graph provides verified relationships. Use EXACTLY these for JOINs:
+Use ONLY the verified FKs listed in the LIVE DATABASE SCHEMA below.
 
-| From Table | To Table | FK Column | Notes |
-|------------|----------|-----------|-------|
-| tickets | properties | tickets.property_id = properties.id | Get property name for tickets |
-| tickets | users | tickets.raised_by = users.id | Get ticket creator |
-| tickets | users | tickets.assigned_to = users.id | Get assigned staff |
-| tickets | issue_categories | tickets.category_id = issue_categories.id | Get category name |
-| electricity_readings | properties | electricity_readings.property_id = properties.id | Get property name for readings |
-| mst_workload | users | mst_workload.user_id = users.id | Get MST name |
-| resolver_stats | users | resolver_stats.user_id = users.id | Get resolver name |
+CORRECT QUERY PATTERNS (the SQL engine supports these exactly):
+- Date ranges: created_at >= '2026-06-01T00:00:00' AND created_at < '2026-06-02T00:00:00'
+- Relative dates: created_at >= CURRENT_DATE - INTERVAL '7 days'
+- This month: created_at >= DATE_TRUNC('month', CURRENT_DATE) AND created_at < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+- Aggregations: SELECT status, COUNT(*) FROM tickets WHERE ... GROUP BY status ORDER BY count DESC
+- Averages: SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600) as avg_hours FROM tickets ...
+- JOINs: SELECT t.*, u.full_name FROM tickets t JOIN users u ON t.assigned_to = u.id WHERE ...
+- Multi-table: SELECT p.name, COUNT(*) as c FROM tickets t JOIN properties p ON t.property_id = p.id GROUP BY p.name
+- Filtering: status IN ('open','assigned','in_progress'), priority IN ('critical','urgent')
+- Text search: title ILIKE '%leak%'
+- Limits: ORDER BY created_at DESC LIMIT 20
+
+UNSUPPORTED — do NOT use these (engine will fail or return wrong results):
+- Subqueries, CTEs (WITH ...), window functions (ROW_NUMBER, RANK)
+- HAVING clauses — fetch aggregated data and filter/count in your analysis instead
+- Complex nested JOINs beyond two tables — break into separate queries if needed
 
 NEVER use these WRONG column names:
 - ❌ tickets.created_by → use tickets.raised_by
 - ❌ users.avatar → use users.user_photo_url
 - ❌ tickets.category → use tickets.category_id (UUID, not text)
-
-If you need to get data from two tables (e.g., tickets with property names):
-1. First query the primary table (tickets)
-2. Then query the related table (properties) if needed
-3. The system will JOIN them in Python — you don't need to write SQL JOINs
 
 ─── PHASE: OBSERVE ────────────────────────────────────────────────────────────
 OBSERVE TOOL RESULTS — before responding, read the data critically:
@@ -518,8 +561,9 @@ SYNTHESIS QUALITY:
 - Org-wide → call health_score with no property_id.
 The tool returns: health_score (%), resolved_closed, total, sla_breached, critical_open.
 Present as: "Health: 78.5% — 47 of 60 tickets resolved in the last 30 days (2 SLA breaches)."
-Do NOT write SQL with FILTER, NULLIF, NOW(), or CURRENT_DATE arithmetic — the SQL tool
-cannot evaluate those; it will return wrong numbers. Use health_score instead.
+Do NOT write SQL with FILTER, NULLIF, or NOW() — the SQL tool cannot evaluate those.
+Use CURRENT_DATE - INTERVAL 'N days' for relative dates.
+Use health_score for subjective property ratings.
 
 OPINION / RATING QUESTIONS:
 When a user asks a subjective question ("rate this property 1–10", "is this a good building",
