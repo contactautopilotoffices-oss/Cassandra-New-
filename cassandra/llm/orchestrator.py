@@ -908,6 +908,9 @@ class LLMOrchestrator:
         _now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
         _resolved_ranges = materialize_date_ranges(_now_ist)
 
+        # Collect executed SQL queries for debug footer
+        _executed_sql_queries: list[dict[str, Any]] = []
+
         # Execute tool calls with streaming events
         for i, tc in enumerate(llm_result.tool_calls[: self.MAX_TOOL_CALLS]):
             tool_name = tc["name"]
@@ -1035,6 +1038,18 @@ class LLMOrchestrator:
             # ── Fix 3: Scope tag this result ──────────────────────────────
             if tool_name == "sql_query" and tool_args.get("query"):
                 scope = detect_query_scope(tool_args["query"], message)
+                # Collect for debug footer
+                row_count = 0
+                if result.success and isinstance(result.result, list):
+                    row_count = len(result.result)
+                elif result.success and isinstance(result.result, dict):
+                    row_count = 1
+                _executed_sql_queries.append({
+                    "query": tool_args["query"],
+                    "success": result.success,
+                    "row_count": row_count,
+                    "result_preview": result.result[:5] if isinstance(result.result, list) else result.result,
+                })
             else:
                 scope = ScopeTag.UNKNOWN
             tool_scopes.append(scope)
@@ -1162,6 +1177,22 @@ class LLMOrchestrator:
                 final_answer = self._sanitize_answer(corrected_answer.strip())
                 self._logger.info("[ORCH] Validation gate: correction applied")
             # If correction also empty, fall through with original (fail-open)
+
+        # ── Debug footer: append executed SQL queries to the answer ────────
+        if _executed_sql_queries:
+            sql_footer_lines = ["\n\n--- Debug: SQL Queries ---"]
+            for idx, sq in enumerate(_executed_sql_queries, 1):
+                status = "OK" if sq["success"] else "FAILED"
+                sql_footer_lines.append(
+                    f"\n[Query {idx}] ({status}, {sq['row_count']} rows)\n{sq['query']}"
+                )
+                if sq["success"] and sq.get("result_preview"):
+                    preview = sq["result_preview"]
+                    if isinstance(preview, list) and preview:
+                        sql_footer_lines.append(f"Result: {json.dumps(preview[:3], default=str)}")
+                    elif isinstance(preview, dict):
+                        sql_footer_lines.append(f"Result: {json.dumps(preview, default=str)}")
+            final_answer += "\n".join(sql_footer_lines)
 
         yield StreamChunk("done", {
             "response": final_answer,
