@@ -550,7 +550,10 @@ class LLMOrchestrator:
             tool_name = tc["name"]
             tool_args = tc.get("arguments", {})
 
-            self._logger.info(f"[ORCH] Tool call {i+1}: {tool_name}({list(tool_args.keys())})")
+            if tool_name == "sql_query" and "query" in tool_args:
+                self._logger.info(f"[ORCH] Tool call {i+1}: {tool_name} | SQL: {tool_args['query'][:500]}")
+            else:
+                self._logger.info(f"[ORCH] Tool call {i+1}: {tool_name}({list(tool_args.keys())})")
 
             # Emit tool_start progress event for real-time CoT streaming
             if on_progress:
@@ -617,10 +620,11 @@ class LLMOrchestrator:
             result = self._execute_tool(tool_name, tool_args, context)
             tool_results.append(result)
 
+            result_preview = str(result.result)[:300] if result.result else "None"
             self._logger.info(
                 f"[ORCH] Tool result {i+1}: {tool_name} → "
                 f"{'✅' if result.success else '❌'} "
-                f"({result.execution_ms:.0f}ms)"
+                f"({result.execution_ms:.0f}ms) | Result: {result_preview}"
             )
             # Emit tool_result progress event for real-time CoT streaming
             if on_progress:
