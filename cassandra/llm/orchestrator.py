@@ -646,9 +646,15 @@ class LLMOrchestrator:
                                 corrected_query,
                                 _re.IGNORECASE,
                             )
-                            bound_clause = (
-                                f" AND created_at >= '{date_check.expected_bound}T00:00:00'"
-                            )
+                            if date_check.expected_end:
+                                bound_clause = (
+                                    f" AND created_at >= '{date_check.expected_bound}T00:00:00' "
+                                    f"AND created_at < '{date_check.expected_end}T00:00:00'"
+                                )
+                            else:
+                                bound_clause = (
+                                    f" AND created_at >= '{date_check.expected_bound}T00:00:00'"
+                                )
                             if insert_point:
                                 pos = insert_point.start()
                                 corrected_query = (
@@ -1065,9 +1071,15 @@ class LLMOrchestrator:
                                 corrected_query,
                                 _re.IGNORECASE,
                             )
-                            bound_clause = (
-                                f" AND created_at >= '{date_check.expected_bound}T00:00:00'"
-                            )
+                            if date_check.expected_end:
+                                bound_clause = (
+                                    f" AND created_at >= '{date_check.expected_bound}T00:00:00' "
+                                    f"AND created_at < '{date_check.expected_end}T00:00:00'"
+                                )
+                            else:
+                                bound_clause = (
+                                    f" AND created_at >= '{date_check.expected_bound}T00:00:00'"
+                                )
                             if insert_point:
                                 pos = insert_point.start()
                                 corrected_query = (

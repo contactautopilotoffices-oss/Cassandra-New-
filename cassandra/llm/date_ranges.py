@@ -56,8 +56,14 @@ def materialize_date_ranges(now: datetime) -> dict:
     last_90_start = (now - timedelta(days=89)).strftime("%Y-%m-%d")
 
     return {
-        "today": today_str,
-        "yesterday": yesterday_str,
+        "today": {
+            "start": today_str,
+            "end": (now + timedelta(days=1)).strftime("%Y-%m-%d"),
+        },
+        "yesterday": {
+            "start": yesterday_str,
+            "end": today_str,
+        },
         "this_month": {
             "start": this_month_start,
             "end": this_month_end,
@@ -105,8 +111,10 @@ def format_date_context_block(now: datetime) -> str:
 
     return (
         "RESOLVED DATE RANGES (computed by server — copy these literal bounds, do NOT compute your own):\n"
-        f"  today:        {r['today']}\n"
-        f"  yesterday:    {r['yesterday']}\n"
+        f"  today:        {r['today']['start']} .. {r['today']['end']}\n"
+        f"    SQL pattern: created_at >= '{r['today']['start']}T00:00:00' AND created_at < '{r['today']['end']}T00:00:00'\n"
+        f"  yesterday:    {r['yesterday']['start']} .. {r['yesterday']['end']}\n"
+        f"    SQL pattern: created_at >= '{r['yesterday']['start']}T00:00:00' AND created_at < '{r['yesterday']['end']}T00:00:00'\n"
         f"  this_month:   {r['this_month']['start']} .. {r['this_month']['end']}   ({r['this_month']['label']})\n"
         f"    SQL pattern: created_at >= '{r['this_month']['start']}T00:00:00' AND created_at < '{next_month_start}T00:00:00'\n"
         f"  last_month:   {r['last_month']['start']} .. {r['last_month']['end']}   ({r['last_month']['label']})\n"

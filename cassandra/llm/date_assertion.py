@@ -54,6 +54,7 @@ class AssertionResult:
     correction_hint: str = ""
     matched_phrase: str = ""
     expected_bound: str = ""
+    expected_end: str = ""
 
 
 def _detect_temporal_intent(user_message: str) -> Optional[str]:
@@ -100,15 +101,21 @@ def assert_temporal_query(
         return AssertionResult(passed=True)
 
     # Resolve the expected bound
+    expected_end = None
     if intent == "today":
-        expected_start = resolved_ranges["today"]
+        range_data = resolved_ranges["today"]
+        expected_start = range_data["start"]
+        expected_end = range_data["end"]
         hint_label = "today"
     elif intent == "yesterday":
-        expected_start = resolved_ranges["yesterday"]
+        range_data = resolved_ranges["yesterday"]
+        expected_start = range_data["start"]
+        expected_end = range_data["end"]
         hint_label = "yesterday"
     elif intent in ("this_month", "last_month", "last_7_days", "last_30_days", "last_90_days"):
         range_data = resolved_ranges[intent]
         expected_start = range_data["start"]
+        expected_end = range_data.get("end")
         hint_label = intent.replace("_", " ")
     elif intent.startswith("month_"):
         # Specific month name — check if the SQL contains the correct month start
@@ -134,14 +141,23 @@ def assert_temporal_query(
 
     if not has_date_filter:
         # No date filter but temporal intent present → contradiction
-        return AssertionResult(
-            passed=False,
-            correction_hint=(
+        if expected_end:
+            hint = (
+                f"User asked for '{hint_label}' but query has no date filter. "
+                f"Add: created_at >= '{expected_start}T00:00:00' "
+                f"AND created_at < '{expected_end}T00:00:00'"
+            )
+        else:
+            hint = (
                 f"User asked for '{hint_label}' but query has no date filter. "
                 f"Add: created_at >= '{expected_start}T00:00:00'"
-            ),
+            )
+        return AssertionResult(
+            passed=False,
+            correction_hint=hint,
             matched_phrase=hint_label,
             expected_bound=expected_start,
+            expected_end=expected_end or "",
         )
 
     # Has a date filter but wrong bound
@@ -154,4 +170,5 @@ def assert_temporal_query(
         ),
         matched_phrase=hint_label,
         expected_bound=expected_start,
+        expected_end=expected_end or "",
     )
